@@ -4,7 +4,10 @@ GET: Feed of users with personality types
 GET: Share Link from your profile 
 GET: Search feed for a specific user
 GET: Statistics for cornell community 
-POST: Create New User
+POST: Register New User
+POST: Login New User
+POST: Logout User
+POST: Update Session for User
 POST: Survey to get personality type
 UPDATE Can retake/update to get new personality type 
 DELETE can delete personality type from user info 
@@ -45,7 +48,7 @@ def greeting():
     """
     return success_response("Hello! Welcome to the Cornell Personality Type App!")
 
-#TODO: add authenticatio (maybe change to register, login, logout)
+#User Register/Login/Logout/UpdateSession
 @app.route("/api/users/register/", methods=["POST"])
 def register_account():
     """
@@ -69,6 +72,13 @@ def login():
 def logout():
     """
     Endpoint for logging out
+    """
+    pass
+
+@app.route("/api/users/session/", methods=["POST"])
+def update_session():
+    """
+    Endpoint for updating session
     """
     pass
 
