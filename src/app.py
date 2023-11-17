@@ -13,11 +13,15 @@ UPDATE Can retake/update to get new personality type
 DELETE can delete personality type from user info 
 POST: Post personality type to feed
 """
+#TODO: another POST request for Enter your MBTI manually
+#TODO: Maybe update can just be POST: Survey to get personality Type... don't need a new request for that
+#TODO: GET for personality type of a user 
+#TODO: POST for new post on feed 
 
 import json
 from db import db
 from flask import Flask, request
-from db import, User, Personality_Type, Post
+from db import User, Personality_Type, Post
 import os
 app = Flask(__name__)
 #TODO: what was filename again lol
@@ -128,6 +132,7 @@ def get_statistics(user_id):
     """
     pass
 
+#TODO: need GET app for external APi? then post? 
 @app.route("/api/users/<int:user_id>/survey", methods=["POST"])
 def post_survey(user_id):
     """
