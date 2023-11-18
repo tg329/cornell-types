@@ -1,9 +1,11 @@
 """
 Requests:
-GET: Feed of users with personality types
-GET: Share Link from your profile 
-GET: Search feed for a specific user
-GET: Statistics for cornell community 
+GET: Feed of ALL posts --> related to users and all of the 16 personalities.
+GET: Share Link from your profile.
+GET: Search feed for a specific user (ask Mateo) to return their profile consisiting of bio, username and personality.
+GET: Statistics for cornell community - generate pie charts/graphs to shows statistics (percentage) based on school.
+GET: Get the questions for the quiz.
+GET: Get personality type of user after they're done with the quiz and also when user clicks on their profile icon.
 POST: Register New User
 POST: Login New User
 POST: Logout User
@@ -11,7 +13,7 @@ POST: Update Session for User
 POST: Survey to get personality type
 UPDATE Can retake/update to get new personality type 
 DELETE can delete personality type from user info 
-POST: Post personality type to feed
+POST: Create post with text for the associated user
 """
 #TODO: another POST request for Enter your MBTI manually
 #TODO: Maybe update can just be POST: Survey to get personality Type... don't need a new request for that
@@ -23,6 +25,7 @@ from db import db
 from flask import Flask, request
 from db import User, Personality_Type, Post
 import os
+import users_dao
 app = Flask(__name__)
 #TODO: what was filename again lol
 db_filename = "users.db"
