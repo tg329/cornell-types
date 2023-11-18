@@ -4,7 +4,7 @@ DAO (Data Access Object) file
 
 Helper file containing functions for accessing data in our database
 """
-
+#TODO: fill out from demo code
 from db import User
 
 
