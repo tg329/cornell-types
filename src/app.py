@@ -11,23 +11,21 @@ POST: Login New User
 POST: Logout User
 POST: Update Session for User
 POST: Survey to get personality type
-UPDATE Can retake/update to get new personality type 
 DELETE can delete personality type from user info 
 POST: Create post with text for the associated user
 """
-#TODO: another POST request for Enter your MBTI manually
-#TODO: Maybe update can just be POST: Survey to get personality Type... don't need a new request for that
-#TODO: GET for personality type of a user 
-#TODO: POST for new post on feed 
+#TODO: Research External APi
+#TODO: Research Image Lecture
+#TODO: Test users routes with postman
 
 import json
 from db import db
 from flask import Flask, request
 from db import User, Personality_Type, Post
 import os
+import datetime
 import users_dao
 app = Flask(__name__)
-#TODO: what was filename again lol
 db_filename = "users.db"
 
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///%s" % db_filename
@@ -44,6 +42,19 @@ def success_response(data, code=200):
 
 def failure_response(message, code=404):
     return json.dumps({"error": message}), code
+
+#helper function
+def extract_token(request):
+    """
+    Helper function that extracts the token from the header
+    """
+    auth_header = request.headers.get("Authorization")
+    if auth_header is None:
+        return False, failure_response("Missing authorization header.")
+    bearer_token = auth_header.replace("Bearer ", "").strip()
+    if bearer_token is None or not bearer_token:
+        return False, failure_response("Invalid authorization header.")
+    return True, bearer_token
 
 #ROUTES
 
@@ -64,7 +75,23 @@ def register_account():
         Requires password 
     Redirect to POST: Survey to get personality type
     """
-    pass
+    body = json.loads(request.data)
+    email = body.get("email")
+    password = body.get("password")
+
+    if email is None or password is None:
+        return failure_response("Email or password not provided")
+    created, user = users_dao.create_user(email, password)
+
+    if not created:
+        return failure_response("User already exists")
+    
+    #NOTE: from authentication demo; doesn't work until db is set up 
+    return success_response({
+        "session_token": user.session_token,
+        "session_expiration": str(user.session_expiration),
+        "update_token": user.update_token
+    })
 
 @app.route("/api/users/login/", methods=["POST"])
 def login():
@@ -73,25 +100,65 @@ def login():
         Requires email
         Requires password
     """
-    pass
+    body = json.loads(request.data)
+    email = body.get("email")
+    password = body.get("password")
+
+    if email is None or password is None:
+        return failure_response("Email or password not provided")
+    success, user = users_dao.verify_credentials(email, password)
+
+    if not success:
+        return failure_response("Incorrect email or password")
+    
+    #NOTE: from authentication demo; doesn't work until db is set up
+    return success_response({
+        "session_token": user.session_token,
+        "session_expiration": str(user.session_expiration),
+        "update_token": user.update_token
+    })
+
 
 @app.route("/api/users/logout/", methods=["POST"])
 def logout():
     """
     Endpoint for logging out
     """
-    pass
+    success, session_token = extract_token(request)
+    if not success:
+        return session_token
+    user = users_dao.get_user_by_session_token(session_token)
+    if user is None:
+        return failure_response("Invalid session token")
+    if not user.verify_session_token(session_token):
+        return failure_response("Invalid session token")
+    user.session.expiration = datetime.datetime.now()
+    db.session.commit()
+    return success_response("Successfully logged out")
 
 @app.route("/api/users/session/", methods=["POST"])
 def update_session():
     """
     Endpoint for updating session
     """
-    pass
+    success, update_token = extract_token(request)
+
+    if not success:
+        return update_token
+    user = users_dao.get_user_by_update_token(update_token)
+    if user is None:
+        return failure_response("Invalid update token")
+    
+    #NOTE: from authentication demo; doesn't work until db is set up
+    return success_response({
+        "session_token": user.session_token,
+        "session_expiration": str(user.session_expiration),
+        "update_token": user.update_token
+    })
 
 #TODO: might need secret message for this
 
-#TODO: need for feed 
+#TODO: REWORK THIS TOMORROW
 @app.route("/api/users/")
 def get_users():
     """
