@@ -36,7 +36,7 @@ def verify_credentials(email, password):
     optional_user = get_user_by_email(email)
 
     if optional_user is None: #User does not exist
-        return False
+        return False #, None
     #NOTE: from authentication demo; doesn't work until db is set up
     return optional_user.verify_password(password), optional_user
 
@@ -63,7 +63,7 @@ def create_user(email, password):
 def renew_session(update_token):
     """
     Renews a user's session token
-    
+
     Returns the User object
     """
     user = get_user_by_update_token(update_token)
