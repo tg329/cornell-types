@@ -6,6 +6,10 @@ Models: Users, Personality_Type, (Post?)
 
 
 from flask_sqlalchemy import SQLAlchemy
+import bcrypt
+import datetime
+import hashlib
+import os
 
 db = SQLAlchemy()
 
