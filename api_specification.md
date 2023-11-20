@@ -198,4 +198,42 @@ Response:
 - For this personality type x, % are students from y school
 
 ## Expected Routes for Survey WORK IN PROGRESS ##
-   
+
+### GET Specific Question (WORK IN PROGRESS)
+`GET /api/surveys/<int:user_id>/<int:question_id>/`
+
+Response:
+```json
+{
+    "id": <id>,
+    "text" : <text>,
+    "option_a" : <option_a>,
+    "option_b" : <option_b>,
+    "type_a" : <type_a>,
+    "type_b" : <type_b>
+}
+```
+*NOTE:*
+- `text` is the question
+- `option_a` is multiple choice option 1
+- `option_b` is multiple choice option 2
+- `type_a` is the letter corresponding to option 1 (i.e: "E" )
+- `type_b` is the letter corresponding to option 2 (i.e: "I")
+
+### POST Submit specific response ###
+`POST /api/surveys/<int:user_id>/<int:question_id>/`
+
+Request Body:
+```json
+{
+    "option": <option_a or option_b>,
+    "type": <type_a or type_b>
+}
+```
+
+Response:
+```json
+{
+    "probably serialize Question model"
+}
+```
