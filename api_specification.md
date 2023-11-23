@@ -220,7 +220,7 @@ Response:
 - `type_a` is the letter corresponding to option 1 (i.e: "E" )
 - `type_b` is the letter corresponding to option 2 (i.e: "I")
 
-### POST Submit specific response ###
+### POST Submit specific response (WORK IN PROGRESS) ###
 `POST /api/surveys/<int:user_id>/<int:question_id>/`
 
 Request Body:
@@ -235,5 +235,16 @@ Response:
 ```json
 {
     "probably serialize Question model"
+}
+```
+
+### GET SURVEY RESULTS ###
+`GET /api/surveys/<int: user_id>/results/`
+
+Reponse:
+```json
+{
+    "user_id": <user_id>,
+    "probably serialize Personality model"
 }
 ```

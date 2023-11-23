@@ -29,7 +29,7 @@ def get_user_by_update_token(update_token):
     return User.query.filter(User.update_token == update_token).first()
 
 
-def verify_credentials(email, password):
+def verify_credentials(email, username, password):
     """
     Returns true if the credentials match, otherwise returns false
     """
@@ -41,7 +41,7 @@ def verify_credentials(email, password):
     return optional_user.verify_password(password), optional_user
 
 
-def create_user(email, password):
+def create_user(email, username, password, school, verification_code):
     """
     Creates a User object in the database
 
@@ -52,7 +52,7 @@ def create_user(email, password):
     if optional_user is not None: #User already exists. Cannot sign up!
         return False, optional_user
     #TODO: edit this when db is set up
-    user = User(email=email, password=password)
+    user = User(email=email, username = username,  password=password, school = school, verification_code = verification_code)
 
     db.session.add(user)
     db.session.commit()

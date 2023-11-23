@@ -39,17 +39,37 @@ Survey:
 
 import json
 from db import db
-from flask import Flask, request
-from db import User, Personality_Type, Post
+from flask import Flask, request, redirect, url_for, flash, g
+from flask_mail import Mail, Message
+import flask_login
+from db import User
 import os
 import datetime
 import users_dao
+import random
+import string
+from functools import wraps
 app = Flask(__name__)
 db_filename = "users.db"
 
+secret_key = os.urandom(32)
+app.secret_key = secret_key #TODO: place in .env file another time
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///%s" % db_filename
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["SQLALCHEMY_ECHO"] = True
+# Configure Flask-Mail
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USE_SSL'] = False
+app.config['MAIL_USERNAME'] = 'hannahyunzizhou@gmail.com'
+app.config['MAIL_PASSWORD'] = 'tdul hefc bafy ajlv'
+app.config['MAIL_DEFAULT_SENDER'] = 'hannahyunzizhou@gmail.com'
+
+mail = Mail(app)
+
+login_manager = flask_login.LoginManager(app)
+login_manager.login_view = "login"
 
 db.init_app(app)
 with app.app_context():
@@ -75,7 +95,19 @@ def extract_token(request):
         return False, failure_response("Invalid authorization header.")
     return True, bearer_token
 
+def send_verification_email(email, verification_code):
+    """
+    Helper function that sends a verification email to the user
+    """
+    msg = Message("Cornell Personality Type Verification Code", recipients=[email], sender = 'hannahyunzizhou@gmail.com')
+    msg.body = f"Your verification code is: {verification_code}"
+    mail.send(msg)
+
 #ROUTES
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
 
 @app.route("/")
 def greeting():
@@ -85,6 +117,17 @@ def greeting():
     """
     return success_response("Hello! Welcome to the Cornell Personality Type App!")
 
+@app.route("/api/users/delete/<int:user_id>/", methods=["DELETE"])
+def delete_user(user_id):
+    """
+    DELETE: Delete User
+    """
+    user = User.query.filter_by(id=user_id).first()
+    if user is None:
+        return failure_response("User not found!")
+    db.session.delete(user)
+    db.session.commit()
+    return success_response(user.simple_serialize())
 #User Register/Login/Logout/UpdateSession
 @app.route("/api/users/register/", methods=["POST"])
 def register_account():
@@ -102,13 +145,20 @@ def register_account():
 
     if email is None or password is None:
         return failure_response("Email, password, username, or school not provided")
-    created, user = users_dao.create_user(email, username, password, school) #TODO: same format as user_dao.py
+    # Generate a random verification code
+    verification_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+    created, user = users_dao.create_user(email, username, password, school, verification_code = verification_code) #TODO: same format as user_dao.py
 
     if not created:
         return failure_response("User already exists")
+    
+        #send the  verification email
+    send_verification_email(email, verification_code)
+    flash('Check your email for the verification code', 'success')
 
     #NOTE: from authentication demo; doesn't work until db is set up 
     return success_response({
+        "message": f"Check your email for the verification code, {verification_code}",
         "session_token": user.session_token,
         "session_expiration": str(user.session_expiration),
         "update_token": user.update_token
@@ -132,7 +182,12 @@ def login():
 
     if not success:
         return failure_response("Incorrect email/username or password")
-
+    
+    if user.is_verified != True:
+        return failure_response("User not verified. Please verify your account.", 403)
+    
+    flask_login.login_user(user)
+    flash('You have been logged in!', 'success')
     #NOTE: from authentication demo; doesn't work until db is set up
     return success_response({
         "session_token": user.session_token,
@@ -140,6 +195,19 @@ def login():
         "update_token": user.update_token
     })
 
+#TODO: dont understand?
+@app.route('/verify/<verification_code>/')
+def verify(verification_code):
+    user = User.query.filter_by(verification_code=verification_code).first()
+
+    if user:
+        user.is_verified = True
+        db.session.commit()
+        flash('Email verification successful. You can now log in.', 'success')
+    else:
+        flash('Invalid verification code.', 'danger')
+
+    return success_response("Email verification successful. You can now log in.")
 
 @app.route("/api/users/logout/", methods=["POST"])
 def logout():
@@ -209,7 +277,7 @@ def get_user(post_id):
       return failure_response("User not found!")
     return success_response(user.simple_serialize())
 
-@app.route("/api/users/username/<String:username>", methods=["GET"])
+@app.route("/api/users/username/<string:username>", methods=["GET"])
 def get_user_by_username(username):
     """
     GET: Search feed for a specific user by username
@@ -278,7 +346,7 @@ def get_statistics(user_id):
 
 #Survey Routes
 
-@app.route("/api/surveys/<int:user_id>/<int:question_id>", methods=["GET"])
+@app.route("/api/surveys/<int:user_id>/<int:question_id>/", methods=["GET"])
 def create_survey():
     """
     POST: Create Survey
@@ -290,7 +358,7 @@ def create_survey():
 
     pass
 
-@app.route("/api/surveys/<int:user_id>/<int:question_id>", methods=["POST"])
+@app.route("/api/surveys/<int:user_id>/<int:question_id>/", methods=["POST"])
 def submit_responses():
     """
     POST: Submit response to a specific question 
@@ -299,10 +367,13 @@ def submit_responses():
     """
     pass
 
-@app.route("/api/surveys/<int: user_id>/results", methods = ["GET"])
+@app.route("/api/surveys/<int:user_id>/results/", methods = ["GET"])
 def get_results():
   """
   GET: Analyze results from survey, update the user with the personality type, and return personality type
   """
   pass
 
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8000))
+    app.run(host="0.0.0.0", port=port)

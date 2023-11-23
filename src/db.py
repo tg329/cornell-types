@@ -10,7 +10,15 @@ import bcrypt
 import datetime
 import hashlib
 import os
-
+import base64 #for encoding images
+#import boto3
+import io
+from io import BytesIO
+from mimetypes import guess_extension, guess_type #for guessing the file extension
+#from PIL import Image  # Correct import statement
+import random #for generating random numbers.censor some file names
+import re #for regular expressions
+import string #for string manipulation
 db = SQLAlchemy()
 
 
@@ -26,11 +34,14 @@ class User(db.Model):
   username = db.Column(db.String, nullable=False)
   password_digest = db.Column(db.String, nullable=False)
   email = db.Column(db.String, nullable=False)
-  posts = db.relationship("Post", cascade="delete")
+  #posts = db.relationship("Post", cascade="delete")
   bio = db.Column(db.String, nullable=True)
   school = db.Column(db.String, nullable=False)
-  personality_id = db.Column(db.String, db.ForeignKey("personality.id"), nullable=True)
+  #personality_id = db.Column(db.String, db.ForeignKey("personality.id"), nullable=True)
+  verification_code = db.Column(db.String(10))
+  is_verified = db.Column(db.Boolean, default=False)
   #personality=db.Column(db.String, nullable=True)
+  is_active = db.Column(db.Boolean, default=True)
 
   #session info.
   session_token = db.Column(db.String, nullable=False, unique=True)
@@ -45,13 +56,20 @@ class User(db.Model):
       self.password_digest = bcrypt.hashpw(kwargs.get("password").encode("utf-8"), bcrypt.gensalt(rounds=13))
       self.email = kwargs.get("email", "")
       self.school = kwargs.get("school", "")
+      self.verification_code = kwargs.get("verification_code", "")
       self.renew_session()
+
+  def get_id(self):
+    """
+    Returns the id of the user.
+    """
+    return self.id
     
   def _urlsafe_base_64(self):
     """
     Randomly generates hashed tokens (used for session/update tokens)
     """
-    return hashlib.shal(os.urandom(64)).hexdigest()
+    return hashlib.sha1(os.urandom(64)).hexdigest()
 
   def renew_session(self):
     """
@@ -88,11 +106,11 @@ class User(db.Model):
           
           "username": self.username,
           "school": self.school,
-          "personality": Personality.query.filter_by(id=self.personality_id).first().personality_type,
+          #"personality": Personality.query.filter_by(id=self.personality_id).first().personality_type,
           "bio": self.bio,
           "email": self.email,
           "password": self.password,
-          "posts": [p.simple_serialize() for p in self.posts],
+          #"posts": [p.simple_serialize() for p in self.posts],
           
       }
 
@@ -104,116 +122,6 @@ class User(db.Model):
           "id": self.id,
           
           "username": self.username,
-          "personality":Personality.query.filter_by(id=self.personality_id).first().personality_type,
+          #"personality":Personality.query.filter_by(id=self.personality_id).first().personality_type,
           "bio": self.bio,
       }
-class Post(db.Model):
-  """
-  Post Model
-  """
-
-  __tablename__ = "post"
-  id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-  text = db.Column(db.String, nullable=False)
-  
-  userid = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
-  #can have image col (for that rectangle with a cross mark in design)??
-
-  def __init__(self, **kwargs):
-      """
-      Initializes a new Post object.
-      """
-      self.text = kwargs.get("text", "")
-      self.userid=kwargs.get("user_id", "")
-
-  def serialize(self):
-      """
-      Serializes a Post object into a dictionary.
-      """
-      return {
-          "id": self.id,
-          "text": self.text,
-          
-          "user":User.query.filter_by(id=self.userid).first().username
-      }
-  #need simple serialize??
-
-class Personality(db.Model):
-  """
-  Personality Model
-  """
-
-  __tablename__ = "personality"
-  id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-  personality_type = db.Column(db.String, nullable=False)
-  number_of_each= db.Column(db.Integer, nullable=False)
-  users=db.relationship("User", cascade="delete")
-   
-  #need to have image col (refer to lecture)
-
-  def __init__(self, **kwargs):
-      """
-      Initializes a new Personality object.
-      """
-      self.personality_type= kwargs.get("personality", "")
-      self.number_of_each=kwargs.get("number_of_each", "")
-
-  def serialize(self):
-      """
-      Serializes a Personality object into a dictionary.
-      """
-      return {
-          "id": self.id,
-          "personality": self.personality_type,
-
-          "number":self.number_of_each,
-          #need the image (most imp)
-      }
-
-class Survey(db.Model):
-  """
-  Survey Model
-  """
-  __tablename__ = "survey"
-  id = db.Column(db.Integer, primary_key=True)
-  user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
-  questions = db.Column(db.JSON, nullable=False)
-  responses = db.Column(db.JSON, nullable=True) #TODO: DICTIONARY key: "E" value: # of E's
-
-  def __init__(self, **kwargs):
-      self.user_id = kwargs.get("user_id")
-      self.questions = kwargs.get("questions")
-      #self.responses = kwargs.get("responses")
-
-  def serialize(self):
-      return {
-          "id": self.id,
-          "user_id": self.user_id,
-          "questions": self.questions,
-          "responses": self.responses,
-      }
-
-  #TODO: make each questions type odd 
-  def find_personality(self):
-      """
-      Finds personality type from responses
-      """
-      #figure out how many E, I, N,S,T,F,J,P
-      personality = ""
-      if self.responses["E"] > self.responses["I"]:
-          personality += "E"
-      else:
-          personality += "I"
-      if self.responses["N"] > self.responses["S"]:
-          personality += "N"
-      else:
-          personality += "S"
-      if self.responses["T"] > self.responses["F"]:
-          personality += "T"
-      else:
-          personality += "F"
-      if self.responses["J"] > self.responses["P"]:
-          personality += "J"
-      else:
-          personality += "P"
-      return personality
