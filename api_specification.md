@@ -199,26 +199,31 @@ Response:
 
 ## Expected Routes for Survey WORK IN PROGRESS ##
 
-### GET Specific Question (WORK IN PROGRESS)
-`GET /api/surveys/<int:user_id>/<int:question_id>/`
+### GET Specific Question w/ Options (WORK IN PROGRESS)
+`GET /api/surveys/<int:question_id>/`
 
 Response:
 ```json
 {
-    "id": <id>,
-    "text" : <text>,
-    "option_a" : <option_a>,
-    "option_b" : <option_b>,
-    "type_a" : <type_a>,
-    "type_b" : <type_b>
+  "id": <id>,
+  "question_no": <question_no>,
+  "question_text": <question_text>,
+  "options": <json format for options>,
+  "answers": self.answers.serialize() if self.answers else None
 }
 ```
 *NOTE:*
-- `text` is the question
-- `option_a` is multiple choice option 1
-- `option_b` is multiple choice option 2
-- `type_a` is the letter corresponding to option 1 (i.e: "E" )
-- `type_b` is the letter corresponding to option 2 (i.e: "I")
+- `id` and `question_no` serve basically the same purpose. it is repetitive but helps with debugging
+- `question_text` is the text for the questions
+- `options` provide the two valid answers to the question. the format is
+  ```json
+  {
+    "id": <id of option>,
+    "question_id": <id of question>,
+    "option_text": <text for the option>
+  }
+  ```
+- `answers` is more for debugging purposes 
 
 ### POST Submit specific response (WORK IN PROGRESS) ###
 `POST /api/surveys/<int:user_id>/<int:question_id>/`
@@ -226,25 +231,39 @@ Response:
 Request Body:
 ```json
 {
-    "option": <option_a or option_b>,
-    "type": <type_a or type_b>
+    "score": <score> 
 }
 ```
 
 Response:
 ```json
 {
-    "probably serialize Question model"
+    "id": <id>,
+    "user_id": <user_id>,
+    "question_id": <question_id>,
+    "option_id": <option_id> 
 }
 ```
 
+<<<<<<< Updated upstream
 ### GET SURVEY RESULTS ###
 `GET /api/surveys/<int: user_id>/results/`
+=======
+### UPDATE USER BY SURVEY PERSONALITY TYPE ###
+`UPDATE /api/surveys/<int:user_id>/`
+>>>>>>> Stashed changes
 
 Reponse:
 ```json
 {
+<<<<<<< Updated upstream
     "user_id": <user_id>,
     "probably serialize Personality model"
+=======
+  "id": <id>,       
+  "username": <username>,
+  "personality": <UPDATED personality type>,
+  "bio": <bio>
+>>>>>>> Stashed changes
 }
 ```
