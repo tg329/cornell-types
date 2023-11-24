@@ -1,3 +1,20 @@
+"""
+Changes
+ - requirements.txt (added flask_login, flask_mail, changed Werkzeug and Flask version
+ - db.py User added, verificatoin_code added, is_verified added, is_active added
+ - db.py renew_session() fixed a type (sh1 instead of shl)
+ - users_dao.py just changed some functions so that login/logout/user works with added fields from User
+ - app.py:
+    - func send_verification_email added
+    - request register_account edited
+    - request login edited
+    - request logout edited
+    - request verify added
+TODO: logic change
+    - every time we get a user, must check if it is verified or not
+TODO: new email to send verification codes lol 
+"""
+
 #NOTE: added GET: Search feed for a specific user by username to return their profile consisiting of bio, username and personality.
 #NOTE: added GET: Search feed for a specific user by post_id to return their profile consisiting of bio, username and personality.
 #NOTE: added POST: create new survey for the user
@@ -63,7 +80,7 @@ app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USE_SSL'] = False
 app.config['MAIL_USERNAME'] = 'hannahyunzizhou@gmail.com'
-app.config['MAIL_PASSWORD'] = 
+app.config['MAIL_PASSWORD'] = 'tdul hefc bafy ajlv'
 app.config['MAIL_DEFAULT_SENDER'] = 'hannahyunzizhou@gmail.com'
 
 mail = Mail(app)
@@ -97,7 +114,7 @@ def extract_token(request):
 
 def send_verification_email(email, verification_code):
     """
-    Helper function that sends a verification email to the user
+    Helper function that sends a verification code to the user's email
     """
     msg = Message("Cornell Personality Type Verification Code", recipients=[email], sender = 'hannahyunzizhou@gmail.com')
     msg.body = f"Your verification code is: {verification_code}"
@@ -195,17 +212,16 @@ def login():
         "update_token": user.update_token
     })
 
-#TODO: dont understand?
-@app.route('/verify/<verification_code>/')
+
+@app.route('/verify/<string:verification_code>/')
 def verify(verification_code):
     user = User.query.filter_by(verification_code=verification_code).first()
 
     if user:
         user.is_verified = True
         db.session.commit()
-        flash('Email verification successful. You can now log in.', 'success')
     else:
-        flash('Invalid verification code.', 'danger')
+        return failure_response("Invalid verification code")
 
     return success_response("Email verification successful. You can now log in.")
 
