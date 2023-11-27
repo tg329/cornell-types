@@ -32,7 +32,7 @@ Response:
 Request Body:
 ```json
 {
-    "email": "hyz41cornell.edu",
+    "email": "hyz4cornell.edu",
     "username": "plumshum",
     "password": "secure"
 }
@@ -67,6 +67,16 @@ Response:
 - If no user is found: `{"message": "Invalid session token"}`
 - If user's session token is invalid:`{"message": "Invalid session token"}`
 
+### Verify User Account ### 
+`GET /api/verify/<string:verification_code>/`
+
+Response:
+```json
+{
+"Email verification successful. You can now log in."
+}
+```
+
 ### Update Session ###
 `POST /api/users/session/`
 
@@ -94,18 +104,17 @@ Response:
         {
             "id": <id>,
             "text": <text>,
-            "user": <username>,
-            "url": <"{base_url}/{salt}.{extension}">
+            "user": <username>
         },
         ...
     ]
 }
 ```
 *Note:* 
-- `url` is a work in progress. the format might change a bit later. not sure if we should add `created_at`
+-  `url` scratched
 
 ### Get Personality Type ###
-`GET /api/users/<int:personality_id>/`
+`GET /api/personality/<int:personality_id>/`
 
 Response:
 ```json
@@ -113,7 +122,7 @@ Response:
     "id": <id>,
     "personality": <personality_type>,
     "description": <description>,
-    "number": <number_of_each>
+    "number of each": <number_of_each>
 }
 ```
 *Note:*
@@ -136,7 +145,7 @@ Response:
 - An example of `personality_type` is "ENTP"
 
 ### Get User by username ###
-`GET /api/users/username/<String:username>/`
+`GET /api/users/username/<string:username>/`
 Response:
 ```json
 {
@@ -182,14 +191,13 @@ Response:
 }
 ```
 
-### Create new Post (WORK IN PROGRESS) ###
+### Create new Post
 `POST /api/users/<int:user_id>/`
 
 Request Body:
 ```json
 {
-    "text": <text>,
-    "image_data": <image_data>
+    "text": <text>
 }
 ```
 
@@ -199,14 +207,13 @@ Response:
     "id": <id>,
     "text": <text>,
     "user": <username>,
-    "url": <"{base_url}/{salt}.{extension}">
 }
 ```
 *Note:*
-- `image_data` is the image in base 64 encoding. Backend Demo on Images have examples of it. 
-- `image_data` and `url` is a work in progress. the format might change a bit later. not sure if we should add `created_at`
+- `image_data` scratched
 
-### GET Statistics (WORK IN PROGRESS) ###
+### GET Statistics
+`GET /api/users/statistics/`
 Response:
 ```json
 {
@@ -217,7 +224,7 @@ Response:
 *NOTE:*
 - For this personality type x, % are students from y school
 
-## Expected Routes for Survey WORK IN PROGRESS ##
+## Expected Routes for Survey
 
 ### GET Specific Question w/ Options (WORK IN PROGRESS)
 `GET /api/surveys/<int:question_id>/`
@@ -266,7 +273,7 @@ Response:
 ```
 
 ### UPDATE USER BY SURVEY PERSONALITY TYPE ###
-`UPDATE /api/surveys/<int:user_id>/`
+`UPDATE /api/results/<int:user_id>/`
 
 Reponse:
 ```json
