@@ -103,7 +103,7 @@ login_manager = flask_login.LoginManager(app)
 login_manager.login_view = "login"
 
 #global variable 
-global cornell_schools = [
+cornell_schools = [
     "College of Agriculture and Life Sciences",
     "College of Architecture, Art, and Planning",
     "College of Arts and Sciences",

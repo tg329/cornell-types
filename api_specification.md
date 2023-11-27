@@ -163,6 +163,25 @@ Response:
 *Note:*
 - Frontend should call request to conduct new survey
 
+### Edit user bio 
+`POST /api/users/<int:user_id>/bio/`
+Request Body:
+```json
+{
+    "text": <text>
+}
+```
+
+Response:
+```json
+{
+    "id": <id>,
+    "username": <username>,
+    "personality": <personality_type>,
+    "bio": <bio>    
+}
+```
+
 ### Create new Post (WORK IN PROGRESS) ###
 `POST /api/users/<int:user_id>/`
 
@@ -245,25 +264,15 @@ Response:
 }
 ```
 
-<<<<<<< Updated upstream
-### GET SURVEY RESULTS ###
-`GET /api/surveys/<int: user_id>/results/`
-=======
 ### UPDATE USER BY SURVEY PERSONALITY TYPE ###
 `UPDATE /api/surveys/<int:user_id>/`
->>>>>>> Stashed changes
 
 Reponse:
 ```json
 {
-<<<<<<< Updated upstream
-    "user_id": <user_id>,
-    "probably serialize Personality model"
-=======
   "id": <id>,       
   "username": <username>,
   "personality": <UPDATED personality type>,
   "bio": <bio>
->>>>>>> Stashed changes
 }
 ```
