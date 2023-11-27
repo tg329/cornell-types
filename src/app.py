@@ -74,7 +74,7 @@ import random
 import string
 from functools import wraps
 from flask import Flask, request
-from db import User, Personality, Post, Question, QuestionOption, UserAnswer
+from db import User, Personality, Post, Question, QuestionOption, UserAnswer, Asset
 import os
 import datetime
 import users_dao
@@ -298,7 +298,7 @@ def get_user(post_id):
       return failure_response("User not found!")
     return success_response(user.simple_serialize())
 
-@app.route("/api/users/username/<string:username>", methods=["GET"])
+@app.route("/api/users/username/<string:username>/", methods=["GET"])
 def get_user_by_username(username):
     """
     GET: Search feed for a specific user by username
@@ -347,7 +347,9 @@ def create_post(user_id):
     """
     body = json.loads(request.data)
     text = body.get("text")
-    url = body.get("url")
+    image_data = body.get("image_data")
+    if image_data is None:
+       return failure_response("No url for image provided")
     if text is None:
         return failure_response("Text not provided")
 
@@ -355,14 +357,18 @@ def create_post(user_id):
     if user is None:
         return failure_response("User not found!")
 
+    asset = Asset(image_data = image_data)
+    db.session.add(asset)
+    db.session.commit()
     post = Post(text=text, userid=user_id) #TODO: add image stuff later
     db.session.add(post)
     db.session.commit()
     return success_response(post.serialize())
 
+
 #MAJORITY personality type for a school 
-@app.route("/api/users/statistics", methods=["GET"])
-def get_statistics(user_id):
+@app.route("/api/users/statistics/", methods=["GET"])
+def get_statistics():
     """
     GET: Statistics for cornell community
     """

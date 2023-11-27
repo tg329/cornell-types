@@ -333,81 +333,89 @@ class UserAnswer(db.Model):
 
 
 #NOTE: a Asset model for the images copied from demo. Not sure if needed 
-class Asset(db.model):
-  __tablename__ = "asset"
-  id = db.Column(db.Integer, primary_key=True, autoincrement = True)
-  base_url = db.Column(db.String, nullable=True)
-  salt = db.Column(db.String, nullable=False) #a tool to make the file name unique/random
-  extension = db.Column(db.String, nullable=False)
-  width = db.Column(db.Integer, nullable=False)
-  height = db.Column(db.Integer, nullable=False)
-  created_at = db.Column(db.DateTime, nullable=False)
+EXTENSIONS = ["png", "gif", "jpg", "jpeg"]
+BASE_DIR = os.getcwd()#get current working directory
+S3_BUCKET_NAME = os.environ.get("S3_BUCKET_NAME")
+S3_BASE_URL = f"https://{S3_BUCKET_NAME}.s3.us-east-1.amazonaws.com"
 
-  def __init__(self, **kwargs):
-    """Initialize a new Asset"""
-    self.create(kwargs.get("image_data"))
-  
-  def serialize(self):
-    """
-    Returns a dictionary representation of the Asset
-    """
-    return {
-        "url": f"{self.base_url}/{self.salt}.{self.extension}",
-        "created_at": str(self.created_at)
-    }
-  def create(self, image_data):
-    """
-    Given an image in base64 encoding, does the following:
-    1. Rejects the image if it is not a supported filename
-    2. Generate a random string for the image filename 
-    3. Decodes the image and attemps to upload to AWS
-    """
-    #if amazon goes down, we can still run our app
-    try:
-        ext = guess_extension(guess_type(image_data)[0])[1:]
-        if ext not in EXTENSIONS:
-            raise Exception(f"Extesnsion {ext} not supported!")
-        salt = "".join(
-            random.SystemRandom().choice(
-                string.ascii_uppercase + string.digits
+class Asset(db.Model):
+    """Asset Model"""
+
+    __tablename__ = "assets"
+    id = db.Column(db.Integer, primary_key=True, autoincrement = True)
+    base_url = db.Column(db.String, nullable=True)
+    salt = db.Column(db.String, nullable=False) #a tool to make the file name unique/random
+    extension = db.Column(db.String, nullable=False)
+    width = db.Column(db.Integer, nullable=False)
+    height = db.Column(db.Integer, nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False)
+
+    def __init__(self, **kwargs):
+        """Initialize a new Asset"""
+        self.create(kwargs.get("image_data"))
+    
+    def serialize(self):
+        """
+        Returns a dictionary representation of the Asset
+        """
+        return {
+            "url": f"{self.base_url}/{self.salt}.{self.extension}",
+            "created_at": str(self.create_at)
+        }
+    def create(self, image_data):
+        """
+        Given an image in base64 encoding, does the following:
+        1. Rejects the image if it is not a supported filename
+        2. Generate a random string for the image filename 
+        3. Decodes the image and attemps to upload to AWS
+        """
+        #if amazon goes down, we can still run our app
+        try:
+            ext = guess_extension(guess_type(image_data)[0])[1:]
+            if ext not in EXTENSIONS:
+                raise Exception(f"Extesnsion {ext} not supported!")
+            salt = "".join(
+                random.SystemRandom().choice(
+                    string.ascii_uppercase + string.digits
+                )
+                for _ in range(16)
             )
-            for _ in range(16)
-        )
-        # now, we only want the very ugly encoding part, so trim everything elses out
-        img_str = re.sub("^data:image/.+;base64,", "", image_data)
-        img_data = base64.b64decode(img_str)
-        img = Image.open(io.BytesIO(img_data))
-  
-        self.base_url = S3_BASE_URL
-        self.salt = salt
-        self.extension = ext
-        self.wiidth = img.width
-        self.height = img.height
-        self.create_at = datetime.datetime.now()
-  
-        img_filename = f"{self.salt}.{self.extension}"
-        self.upload(img, img_filename)
-    except Exception as e:
-        print(f"Error when creating image: {e}")
-  
-  def upload(self, img, img_filename):
-      """
-      Uploads the image to AWS
-      """
-      try:
-          #save image into temporary
-          img_temp_loc = f"{BASE_DIR/{img_filename}}"
-          img.save(img_temp_loc)
-    
-          #upload to AWS bucket
-          s3_client = boto3.client("s3")
-          s3_client.upload_file(img_temp_loc,S3_BUCKET_NAME,img_filename)
-    
-          s3_resource = boto3.resource("s3") #for manipulating the image
-          object_acl = s3_resource.ObjectAcl(S3_BUCKET_NAME, img_filename)
-          object_acl.put(ACL = "public-read") #anybody can view image
-    
-          os.remove(img_temp_loc) #remove image from temporary location
-    
-      except Exception as e:
-          print(f"Error when uploading image: {e}")
+            # now, we only want the very ugly encoding part, so trim everything elses out
+            img_str = re.sub("^data:image/.+;base64,", "", image_data)
+            img_data = base64.b64decode(img_str)
+            img = Image.open(io.BytesIO(img_data))
+
+            self.base_url = S3_BASE_URL
+            self.salt = salt
+            self.extension = ext
+            self.wiidth = img.width
+            self.height = img.height
+            self.create_at = datetime.datetime.now()
+
+            img_filename = f"{self.salt}.{self.extension}"
+            self.upload(img, img_filename)
+        except Exception as e:
+            print(f"Error when creating image: {e}")
+
+    def upload(self, img, img_filename):
+        """
+        Uploads the image to AWS
+        """
+        try:
+            #save image into temporary
+            img_temp_loc = f"{BASE_DIR/{img_filename}}"
+            img.save(img_temp_loc)
+
+            #upload to AWS bucket
+            s3_client = boto3.client("s3")
+            s3_client.upload_file(img_temp_loc,S3_BUCKET_NAME,img_filename)
+
+            s3_resource = boto3.resource("s3") #for manipulating the image
+            object_acl = s3_resource.ObjectAcl(S3_BUCKET_NAME, img_filename)
+            object_acl.put(ACL = "public-read") #anybody can view image
+
+            os.remove(img_temp_loc) #remove image from temporary location
+
+        except Exception as e:
+            print(f"Error when uploading image: {e}")
+            

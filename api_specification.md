@@ -189,7 +189,7 @@ Request Body:
 ```json
 {
     "text": <text>,
-    "url": <url>
+    "image_data": <image_data>
 }
 ```
 
@@ -203,7 +203,8 @@ Response:
 }
 ```
 *Note:*
-- `url` is a work in progress. the format might change a bit later. not sure if we should add `created_at`
+- `image_data` is the image in base 64 encoding. Backend Demo on Images have examples of it. 
+- `image_data` and `url` is a work in progress. the format might change a bit later. not sure if we should add `created_at`
 
 ### GET Statistics (WORK IN PROGRESS) ###
 Response:
