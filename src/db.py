@@ -44,7 +44,7 @@ class User(db.Model):
   #personality=db.Column(db.String, nullable=True)
   verification_code = db.Column(db.String(10))
   is_verified = db.Column(db.Boolean, default=False)
-  answers=db.relationship("UserAnswer", backref="user", lazy=True)
+  answers=db.relationship("UserAnswer", backref="user", cascade="delete", lazy = True)
   is_active = db.Column(db.Boolean, default=True)
   #session info.
   session_token = db.Column(db.String, nullable=False, unique=True)
@@ -152,7 +152,7 @@ class Post(db.Model):
       Initializes a new Post object.
       """
       self.text = kwargs.get("text", "")
-      self.userid=kwargs.get("user_id", "")
+      self.userid=kwargs.get("userid", "")
 
   def serialize(self):
       """
@@ -161,7 +161,6 @@ class Post(db.Model):
       return {
           "id": self.id,
           "text": self.text,
-          
           "user":User.query.filter_by(id=self.userid).first().username
       }
   #need simple serialize??

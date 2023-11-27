@@ -15,7 +15,7 @@ Survey:
 1. FUNC create_survey_questions
 2. GET: Specific Question with Questions Options
 3. POST: Submit specific user's response to a specific question
-4. PATCH: After all answers submitted, get user's new personality type and update the user in the database.
+4. GET: After all answers submitted, get user's new personality type and update the user in the database.
  - test out different combinations of options 
 
 Feed with Posts:
@@ -78,13 +78,14 @@ import os
 import datetime
 import users_dao
 from questions import question_data
-import helper_funcs as helper
+#import helper_funcs as helper
 app = Flask(__name__)
 db_filename = "users.db"
 
 secret_key = os.urandom(32)
 app.secret_key = secret_key #TODO: place in .env file another time
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///%s" % db_filename
+
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["SQLALCHEMY_ECHO"] = True
 # Configure Flask-Mail
@@ -93,8 +94,10 @@ app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USE_SSL'] = False
 app.config['MAIL_USERNAME'] = 'hannahyunzizhou@gmail.com'
-app.config['MAIL_PASSWORD'] = 'tdul hefc bafy ajlv'
+app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
 app.config['MAIL_DEFAULT_SENDER'] = 'hannahyunzizhou@gmail.com'
+
+INITIALIZATION_FILE = 'initialization_status.txt'
 
 mail = Mail(app)
 
@@ -114,10 +117,18 @@ cornell_schools = [
 ]
 
 db.init_app(app)
-with app.app_context():
-    db.create_all()
-    helper.create_survey_questions()
-    helper.create_personalities()
+def create_app():
+    # Check if the initialization status file exists
+    if not os.path.exists(INITIALIZATION_FILE):
+        with app.app_context():
+            # Initialize the database and run your functions
+            db.create_all()
+            helper.create_survey_questions()
+            helper.create_personalities()
+            # Create the initialization status file
+            with open(INITIALIZATION_FILE, 'w') as file:
+                file.write("initialized")
+    return app
 
 # generalized response formats
 def success_response(data, code=200):
@@ -327,7 +338,7 @@ def get_posts():
     return success_response([p.serialize() for p in Post.query.all()])
 
 # also need get all personalities for mini-circles on top of feed
-@app.route("/api/users/<int:personality_id>/", methods=["GET"])
+@app.route("/api/personality/<int:personality_id>/", methods=["GET"])
 def get_personality_type(personality_id):
   """
   GET: personality
@@ -349,6 +360,8 @@ def get_user(post_id):
     user = User.query.filter_by(id=user_id).first()
     if user is None:
       return failure_response("User not found!")
+    if user.is_verified != True:
+        return failure_response("User not verified. Please verify your account.", 403)
     return success_response(user.simple_serialize())
 
 @app.route("/api/users/username/<string:username>/", methods=["GET"])
@@ -360,6 +373,8 @@ def get_user_by_username(username):
     user = User.query.filter_by(username=username).first()
     if user is None:
         return failure_response("User not found!")
+    if user.is_verified != True:
+        return failure_response("The user found is not verified.")
     return success_response(user.simple_serialize())
 
 @app.route("/api/users/<int:user_id>/bio/", methods = ["POST"])
@@ -400,9 +415,9 @@ def create_post(user_id):
     """
     body = json.loads(request.data)
     text = body.get("text")
-    image_data = body.get("image_data")
-    if image_data is None:
-       return failure_response("No url for image provided")
+    #image_data = body.get("image_data")
+    #if image_data is None:
+       #return failure_response("No url for image provided")
     if text is None:
         return failure_response("Text not provided")
 
@@ -410,14 +425,26 @@ def create_post(user_id):
     if user is None:
         return failure_response("User not found!")
 
-    asset = Asset(image_data = image_data)
-    db.session.add(asset)
-    db.session.commit()
+    #asset = Asset(image_data = image_data)
+    #db.session.add(asset)
+    #db.session.commit()
     post = Post(text=text, userid=user_id) #TODO: add image stuff later
     db.session.add(post)
     db.session.commit()
     return success_response(post.serialize())
 
+#-- Debug---
+@app.route("/api/posts/<int:post_id>/", methods=["DELETE"])
+def get_post(post_id):
+    """
+    GET: Search feed delete post by post_id
+    """
+    post = Post.query.filter_by(id=post_id).first()
+    if post is None:
+        return failure_response("Post not found!")
+    db.session.delete(post)
+    db.session.commit()
+    return success_response("deleted")
 
 #MAJORITY personality type for a school 
 @app.route("/api/users/statistics/", methods=["GET"])
@@ -433,19 +460,33 @@ def get_statistics():
 
     #TODO: append dictionary
 
+    """personality_id = Personality.query.filter_by(personality_type = "ESFP" ).first().id
+    num_users = len(User.query.filter_by(personality_id=personality_id).all())
+    lst = []
+    lst.append({"College of Engineering": num_users})
+    dict["ESFP"] = lst
+    """
+    
+    
     for personality in Personality.query.all():
       max = 0.0
       max_school = ""
       lst = [] #lst of dictionaries. dictionary key is school, value is % 
       for school in cornell_schools:
-        num_users = User.query.filter_by(personality_id=personality.id, school = school).count()
-        percentage = num_users / personality.num_of_each
+        num_users = len(User.query.filter_by(personality_id=personality.id, school = school).all())
+        percentage = num_users / 5 #personality.number_of_each
         if percentage > max: 
           max = percentage
           max_school = school
-      lst.append({f"{max_school}": max})
-      dict[personality.type] = lst
-    return success_response(dict)    
+      if max != 0.0: lst.append({f"{max_school}": max})
+      else: lst.append({f"No users found for {personality.personality_type}": 0.0})
+      dict[personality.personality_type] = lst
+    return success_response(dict)   
+
+            
+
+    
+     
 
 #Survey Routes
 
@@ -530,9 +571,12 @@ def update_user_personality_type(user_id):
   personality_id = helper.find_personality(user_id)
   if personality_id is None:
     return failure_response("Failed to get personality type for the user")
+  personality = Personality.query.filter_by(id = personality_id).first()
+  personality.number_of_each +=1 
   user.personality_id = personality_id
   db.session.commit()
   return success_response(user.simple_serialize())
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8000, debug=False)
+    import helper_funcs as helper
+    create_app().run(host="0.0.0.0", port=8000, debug=False)
