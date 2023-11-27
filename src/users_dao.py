@@ -43,7 +43,7 @@ def verify_credentials(email, username, password):
     elif username is not None:
         optional_user = get_user_by_username(username)
     if optional_user is None: #User does not exist
-        return False #, None
+        return False, None
     #NOTE: from authentication demo; doesn't work until db is set up
     return optional_user.verify_password(password), optional_user
 

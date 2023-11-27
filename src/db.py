@@ -167,36 +167,38 @@ class Post(db.Model):
   #need simple serialize??
 
 class Personality(db.Model):
-  """
-  Personality Model
-  """
+    """
+    Personality Model
+    """
 
-  __tablename__ = "personality"
-  id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-  personality_type = db.Column(db.String, nullable=False)
-  number_of_each= db.Column(db.Integer, nullable=False)
-  users=db.relationship("User", cascade="delete")
-   
-  #TODO: add description 
+    __tablename__ = "personality"
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    personality_type = db.Column(db.String, nullable=False)
+    number_of_each= db.Column(db.Integer, nullable=False)
+    users=db.relationship("User", cascade="delete")
+    description = db.Column(db.String, nullable = False)
 
-  def __init__(self, **kwargs):
-      """
-      Initializes a new Personality object.
-      """
-      self.personality_type= kwargs.get("personality", "")
-      self.number_of_each=kwargs.get("number_of_each", "")
+    #TODO: add description 
 
-  def serialize(self):
-      """
-      Serializes a Personality object into a dictionary.
-      """
-      return {
-          "id": self.id,
-          "personality": self.personality_type,
+    def __init__(self, **kwargs):
+        """
+        Initializes a new Personality object.
+        """
+        self.personality_type= kwargs.get("personality_type", "")
+        self.number_of_each=0
+        self.description = kwargs.get("description", "")
 
-          "number":self.number_of_each,
-          #need the image (most imp)
-      }
+    def serialize(self):
+        """
+        Serializes a Personality object into a dictionary.
+        """
+        return {
+            "id": self.id,
+            "personality": self.personality_type,
+            "description": self.description,
+            "number of each ":self.number_of_each,
+            #need the image (most imp)
+                }
 
 #split into Question{constant model}  Response Model
 

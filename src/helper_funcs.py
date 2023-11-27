@@ -1,7 +1,7 @@
 #11/26/2023 DEBUG NOTE: need to import stuff
 from questions import question_data
 from db import db
-from db import Question, QuestionOption, UserAnswer
+from db import Question, QuestionOption, UserAnswer, Personality
 # Create questions and options at beginning of app
 def create_survey_questions():
   for q_data in question_data:
@@ -15,14 +15,52 @@ def create_survey_questions():
       question.options.extend(options)
   db.session.commit()
 
+#create 16 personality types and commit to db
+def create_personalities():
+        # create a dictionary for key personality type and value description in python format
+    mbti_types = [
+    "ISTJ", "ISFJ", "INFJ", "INTJ",
+    "ISTP", "ISFP", "INFP", "INTP",
+    "ESTP", "ESFP", "ENFP", "ENTP",
+    "ESTJ", "ESFJ", "ENFJ", "ENTJ"
+    ]
+
+    mbti_descriptions = [
+        "The Inspector - ISTJs are quiet, serious individuals who are responsible, reliable, and practical...",
+        "The Protector - ISFJs are warm, friendly, and responsible individuals who value harmony and cooperation...",
+        "The Counselor - INFJs are insightful, empathetic, and organized individuals. They possess a deep understanding of human emotions and motivations...",
+        "The Mastermind - INTJs are independent, original thinkers who are analytical, determined, and visionary...",
+        "The Craftsman - ISTPs are tolerant, analytical, and hands-on individuals who enjoy exploring how things work...",
+        "The Composer - ISFPs are gentle, sensitive, and artistic individuals who appreciate beauty and harmony...",
+        "The Healer - INFPs are idealistic, sensitive, and caring individuals with a deep commitment to their values...",
+        "The Architect - INTPs are innovative, logical, and curious individuals who enjoy exploring abstract concepts and ideas...",
+        "The Dynamo - ESTPs are energetic, outgoing, and adventurous individuals who thrive on action and excitement...",
+        "The Performer - ESFPs are outgoing, lively, and fun-loving individuals who enjoy being the center of attention...",
+        "The Champion - ENFPs are enthusiastic, creative, and optimistic individuals who are driven by a desire for exploration and inspiration...",
+        "The Visionary - ENTPs are inventive, enthusiastic, and analytical individuals who enjoy exploring new ideas and possibilities...",
+        "The Supervisor - ESTJs are practical, realistic, and decisive individuals who value order, efficiency, and organization...",
+        "The Provider - ESFJs are warm, outgoing, and conscientious individuals who value connection and service to others...",
+        "The Teacher - ENFJs are warm, empathetic, and responsible individuals who are dedicated to the personal growth of those around them...",
+        "The Commander - ENTJs are strategic, assertive, and confident individuals who excel in leadership roles. They are goal-oriented and enjoy taking charge to achieve results..."
+    ]
+
+    for i in range(0,16):
+        personality = Personality(personality_type = mbti_types[i], description = mbti_descriptions[i])
+        db.session.add(personality)
+    db.session.commit()
+
+
 def find_personality(user_id):
   """
   Finds personality type from responses
   """
-  user_answers= UserAnswer.query.filter_by(user_id=user_id).all()
 
-  #might to .count() intead for this
-  if len(user_answers) != 36:
+  #get user_answers from user_id
+  answers = UserAnswer.query.filter_by(user_id = user_id).all()
+
+  #check if length of user_answers is 36
+  if len(answers) != 36:
+    print("ran into error")
     return None
   
   personality_type = ""
@@ -35,7 +73,7 @@ def find_personality(user_id):
   count_P=0
   count_J=0  
   
-  for user_answer in user_answers: 
+  for user_answer in answers: 
     option = QuestionOption.query.filter_by(id = user_answer.option_id).first()
     if option.score == "E":
         count_E+=1
@@ -54,21 +92,22 @@ def find_personality(user_id):
     elif option.score == "J":
         count_J+=1
   
-    if count_E > count_I:
-        personality_type += "E"
-    else:
-        personality_type += "I"
-    if count_N > count_S:
-        personality_type += "N"
-    else:
-        personality_type += "S"
-    if count_T > count_F:
-        personality_type += "T"
-    else:
-        personality_type += "F"
-    if count_J > count_P:
-        personality_type += "J"
-    else:
-        personality_type += "P"
-  
-  return personality_type
+  if count_E > count_I:
+    personality_type += "E"
+  else:
+    personality_type += "I"
+  if count_N > count_S:
+    personality_type += "N"
+  else:
+    personality_type += "S"
+  if count_T > count_F:
+    personality_type += "T"
+  else:
+    personality_type += "F"
+  if count_J > count_P:
+    personality_type += "J"
+  else:
+    personality_type += "P"
+  print(personality_type)
+  personality = Personality.query.filter_by(personality_type = personality_type).first()
+  return personality.id

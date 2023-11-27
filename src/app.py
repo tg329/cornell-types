@@ -113,11 +113,11 @@ cornell_schools = [
     "Cornell Law School"
 ]
 
-
 db.init_app(app)
 with app.app_context():
     db.create_all()
     helper.create_survey_questions()
+    helper.create_personalities()
 
 # generalized response formats
 def success_response(data, code=200):
@@ -178,7 +178,24 @@ def get_survey_questions():
     """
     GET: Survey Questions
     """
-    return success_response([q.serialize() for q in Question.query.all()], [o.serialize() for o in QuestionOption.query.all()])
+    return success_response([q.serialize() for q in Question.query.all()])
+
+@app.route("/api/users/personalities/", methods=["GET"])
+def get_personalities():
+    """
+    GET: All Personalities
+    """
+    return success_response([p.serialize() for p in Personality.query.all()])
+
+@app.route("/api/users/personalities/delete/", methods=["DELETE"])
+def delete_personality():
+    """
+    DELETE: from the database, delete all the personalities models
+    """
+    for personality in Personality.query.all():
+        db.session.delete(personality)
+    db.session.commit()
+    return success_response("Successfully deleted all personalities")
 
 #---AUTHENTICATION---
 @app.route("/api/users/register/", methods=["POST"])
@@ -197,6 +214,10 @@ def register_account():
 
     if email is None or password is None:
         return failure_response("Email, password, username, or school not provided")
+    if "@cornell.edu" not in email:
+        return failure_response("Email not a valid Cornell email")
+    if school not in cornell_schools:
+        return failure_response("School not a valid Cornell school")
     # Generate a random verification code
     verification_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
     created, user = users_dao.create_user(email, username, password, school, verification_code = verification_code) #TODO: same format as user_dao.py
@@ -253,7 +274,7 @@ def logout():
     """
     Endpoint for logging out a user
     """
-    success, session_token = helper.extract_token(request)
+    success, session_token = extract_token(request)
     if not success:
         return session_token
     user = users_dao.get_user_by_session_token(session_token)
@@ -265,12 +286,24 @@ def logout():
     db.session.commit()
     return success_response("Successfully logged out")
 
+@app.route('/verify/<string:verification_code>/')
+def verify(verification_code):
+    user = User.query.filter_by(verification_code=verification_code).first()
+
+    if user:
+        user.is_verified = True
+        db.session.commit()
+    else:
+        return failure_response("Invalid verification code")
+
+    return success_response("Email verification successful. You can now log in.")
+
 @app.route("/api/users/session/", methods=["POST"])
 def update_session():
     """
     Endpoint for updating session
     """
-    success, update_token = helper.extract_token(request)
+    success, update_token = extract_token(request)
 
     if not success:
         return update_token
@@ -450,6 +483,8 @@ def submit_answer(user_id, question_id):
     return failure_response("No options found")
   if user is None:
     return failure_response("No user found")
+  if not user.is_verified:
+    return failure_response("User not verified. Please verify your account.", 403)
   
   #selected_option = get_user_selection(question.id)
   body = json.loads(request.data)
@@ -461,6 +496,9 @@ def submit_answer(user_id, question_id):
   if selected_option is None:
     return failure_response("No option based on user's response is found")
     
+  previous_answer = UserAnswer.query.filter_by(user_id=user_id, question_id=question.id).first()
+  if previous_answer is not None:
+    db.session.delete(previous_answer)
   user_answer = UserAnswer(user_id=user_id, question_id=question.id, option_id=selected_option.id)
   #question.answers.append(user_answer)
   db.session.add(user_answer)
@@ -479,20 +517,22 @@ def get_user_selection(question_id):
   selected_option = next((option for option in options if option.score==score))
   return selected_option"""
 
-@app.route("/api/surveys/<int:user_id>/", methods = ["PATCH"])
+@app.route("/api/results/<int:user_id>/")
 def update_user_personality_type(user_id):
   """
   Update user with new personality type
   """
-  user = User.query.filter_by(id = user.id).first()
+  user = User.query.filter_by(id = user_id).first()
   if user is None:
     return failure_response("No user found")
-  personality_type = helper.find_personality(user_id)
-  if personality_type is None:
+  if not user.is_verified:
+    return failure_response("User not verified. Please verify your account.", 403)
+  personality_id = helper.find_personality(user_id)
+  if personality_id is None:
     return failure_response("Failed to get personality type for the user")
-  user.personality_type = personality_type
+  user.personality_id = personality_id
   db.session.commit()
   return success_response(user.simple_serialize())
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8000, debug=True)
+    app.run(host="0.0.0.0", port=8000, debug=False)
