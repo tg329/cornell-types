@@ -1,8 +1,7 @@
-#TODO: put in a separate file 
-
-
-#helper function
-
+#11/26/2023 DEBUG NOTE: need to import stuff
+from questions import question_data
+from db import db
+from db import Question, QuestionOption, UserAnswer
 # Create questions and options at beginning of app
 def create_survey_questions():
   for q_data in question_data:
@@ -15,18 +14,6 @@ def create_survey_questions():
       db.session.add_all(options)
       question.options.extend(options)
   db.session.commit()
-
-def extract_token(request):
-    """
-    Helper function that extracts the token from the header
-    """
-    auth_header = request.headers.get("Authorization")
-    if auth_header is None:
-        return False, failure_response("Missing authorization header.")
-    bearer_token = auth_header.replace("Bearer", "").strip()
-    if bearer_token is None or not bearer_token:
-        return False, failure_response("Invalid authorization header.")
-    return True, bearer_token
 
 def find_personality(user_id):
   """

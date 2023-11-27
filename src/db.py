@@ -1,9 +1,7 @@
 """
 Models: Users, Personality_Type, (Post?), Questions (with text and options, Answers
 """
-#NOTE: need Survey model 
-#NOTE: when creating user in db(when they first sign up) need school, username too in addition to already configured email and password in create_user in users_dao.py
-#NOTE: need an Asset model for the images
+#11/26/23 DEBUG: Finished Asset Model. QuestionOption edited init()
 
 
 from flask_sqlalchemy import SQLAlchemy
@@ -287,9 +285,10 @@ class QuestionOption(db.Model):
   option_text = db.Column(db.String, nullable=False)
   score=db.Column(db.String, nullable=False)
 
-  def __init__(self, question_id, option_text):
+  def __init__(self, question_id, option_text, score):
       self.question_id = question_id
       self.option_text = option_text
+      self.score = score
 
   def serialize(self):
       return {
@@ -306,7 +305,7 @@ class UserAnswer(db.Model):
   """
   __tablename__ = "user_answers"
   id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-  user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+  user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
   question_id = db.Column(db.Integer, db.ForeignKey("questions.id"))
   option_id = db.Column(db.Integer, db.ForeignKey("question_options.id"))
  # final_answer = db.Column(db.String, nullable=True)

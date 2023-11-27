@@ -64,9 +64,8 @@ Survey:
 import json
 from db import db
 from flask import Flask, request, redirect, url_for, flash, g
-from flask_mail import Mail, Message
 import flask_login
-from db import User
+from flask_mail import Mail, Message
 import os
 import datetime
 import users_dao
@@ -135,6 +134,18 @@ def send_verification_email(email, verification_code):
     msg.body = f"Your verification code is: {verification_code}"
     mail.send(msg)
 
+def extract_token(request):
+    """
+    Helper function that extracts the token from the header
+    """
+    auth_header = request.headers.get("Authorization")
+    if auth_header is None:
+        return False, failure_response("Missing authorization header.")
+    bearer_token = auth_header.replace("Bearer", "").strip()
+    if bearer_token is None or not bearer_token:
+        return False, failure_response("Invalid authorization header.")
+    return True, bearer_token
+
 #ROUTES
 
 @login_manager.user_loader
@@ -149,6 +160,7 @@ def greeting():
     """
     return success_response("Hello! Welcome to the Cornell Personality Type App!")
 
+#--- DEBUGGERS---
 @app.route("/api/users/delete/<int:user_id>/", methods=["DELETE"])
 def delete_user(user_id):
     """
@@ -160,7 +172,15 @@ def delete_user(user_id):
     db.session.delete(user)
     db.session.commit()
     return success_response(user.simple_serialize())
-#User Register/Login/Logout/UpdateSession
+
+@app.route("/api/users/survey/", methods=["GET"])
+def get_survey_questions():
+    """
+    GET: Survey Questions
+    """
+    return success_response([q.serialize() for q in Question.query.all()], [o.serialize() for o in QuestionOption.query.all()])
+
+#---AUTHENTICATION---
 @app.route("/api/users/register/", methods=["POST"])
 def register_account():
     """
