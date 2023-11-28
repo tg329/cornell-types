@@ -82,7 +82,7 @@ from questions import question_data
 app = Flask(__name__)
 db_filename = "users.db"
 
-secret_key = os.urandom(32)
+secret_key = os.environ.get('SECRET_KEY')
 app.secret_key = secret_key #TODO: place in .env file another time
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///%s" % db_filename
 
@@ -297,7 +297,7 @@ def logout():
     db.session.commit()
     return success_response("Successfully logged out")
 
-@app.route('/verify/<string:verification_code>/')
+@app.route('/api/verify/<string:verification_code>/')
 def verify(verification_code):
     user = User.query.filter_by(verification_code=verification_code).first()
 
@@ -474,7 +474,8 @@ def get_statistics():
       lst = [] #lst of dictionaries. dictionary key is school, value is % 
       for school in cornell_schools:
         num_users = len(User.query.filter_by(personality_id=personality.id, school = school).all())
-        percentage = num_users / 5 #personality.number_of_each
+        if personality.number_of_each == 0: percentage = 0.0
+        else: percentage = num_users / personality.number_of_each
         if percentage > max: 
           max = percentage
           max_school = school

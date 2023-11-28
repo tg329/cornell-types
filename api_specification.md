@@ -2,6 +2,9 @@
 
 Values wrapped in `< >` are placeholders for what the field values should be. Also, be sure to read the request route carefully when you implement it.
 
+# Base URL Link:
+`http://34.48.21.54/`
+
 ## Expected Functionality
 
 ### Register User
