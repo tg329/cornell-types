@@ -71,7 +71,7 @@ Response:
 - If user's session token is invalid:`{"message": "Invalid session token"}`
 
 ### Verify User Account ### 
-`GET /api/verify/<string:verification_code>/`
+`GET /api/users/verify/<string:verification_code>/`
 
 Response:
 ```json
@@ -98,7 +98,7 @@ Response:
 ```
 
 ### Get All Posts from Feed (WORK IN PROGRESS) ###
-`GET /api/users/`
+`GET /api/posts/`
 
 Response:
 ```json
@@ -117,7 +117,7 @@ Response:
 -  `url` scratched
 
 ### Get Personality Type ###
-`GET /api/personality/<int:personality_id>/`
+`GET /api/personalities/<int:personality_id>/`
 
 Response:
 ```json
@@ -133,7 +133,7 @@ Response:
 - `number_of_each` represents the number of users of that personality 
 
 ### Get User by post_id ###
-`GET /api/users/posts/<int:post_id>/`
+`GET /api/posts/<int:post_id>/`
 
 Response:
 ```json
@@ -148,7 +148,7 @@ Response:
 - An example of `personality_type` is "ENTP"
 
 ### Get User by username ###
-`GET /api/users/username/<string:username>/`
+`GET /api/users/<string:username>/`
 Response:
 ```json
 {
@@ -195,7 +195,7 @@ Response:
 ```
 
 ### Create new Post
-`POST /api/users/<int:user_id>/`
+`POST /api/users/<int:user_id>/posts/`
 
 Request Body:
 ```json
@@ -229,7 +229,7 @@ Response:
 
 ## Expected Routes for Survey
 
-### GET Specific Question w/ Options (WORK IN PROGRESS)
+### GET Specific Question w/ Options
 `GET /api/surveys/<int:question_id>/`
 
 Response:
@@ -255,7 +255,7 @@ Response:
   ```
 - `answers` is more for debugging purposes 
 
-### POST Submit specific response (WORK IN PROGRESS) ###
+### POST Submit specific response 
 `POST /api/surveys/<int:user_id>/<int:question_id>/`
 
 Request Body:
@@ -276,7 +276,7 @@ Response:
 ```
 
 ### UPDATE USER BY SURVEY PERSONALITY TYPE ###
-`UPDATE /api/results/<int:user_id>/`
+`UPDATE /api/surveys/<int:user_id>/results/`
 
 Reponse:
 ```json

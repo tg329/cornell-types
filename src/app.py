@@ -242,7 +242,7 @@ def register_account():
 
     #NOTE: from authentication demo; doesn't work until db is set up 
     return success_response({
-        "message": f"Check your email for the verification code, {verification_code}",
+        "message": "Check your email for the verification code",
         "session_token": user.session_token,
         "session_expiration": str(user.session_expiration),
         "update_token": user.update_token
@@ -297,7 +297,7 @@ def logout():
     db.session.commit()
     return success_response("Successfully logged out")
 
-@app.route('/api/verify/<string:verification_code>/')
+@app.route('/api/users/verify/<string:verification_code>/')
 def verify(verification_code):
     user = User.query.filter_by(verification_code=verification_code).first()
 
@@ -330,7 +330,7 @@ def update_session():
         "update_token": user.update_token
     })
 
-@app.route("/api/users/")
+@app.route("/api/posts/")
 def get_posts():
     """
     GET: Feed of ALL posts --> related to users and all of the 16 personalities.
@@ -338,7 +338,7 @@ def get_posts():
     return success_response([p.serialize() for p in Post.query.all()])
 
 # also need get all personalities for mini-circles on top of feed
-@app.route("/api/personality/<int:personality_id>/", methods=["GET"])
+@app.route("/api/personalities/<int:personality_id>/", methods=["GET"])
 def get_personality_type(personality_id):
   """
   GET: personality
@@ -348,7 +348,7 @@ def get_personality_type(personality_id):
     return failure_response("Personality not found")
   return success_response(personality.serialize()) 
 
-@app.route("/api/users/posts/<int:post_id>/")
+@app.route("/api/posts/<int:post_id>/")
 def get_user(post_id):
     """
     GET: Search feed for a specific user by post_id
@@ -364,7 +364,7 @@ def get_user(post_id):
         return failure_response("User not verified. Please verify your account.", 403)
     return success_response(user.simple_serialize())
 
-@app.route("/api/users/username/<string:username>/", methods=["GET"])
+@app.route("/api/users/<string:username>/", methods=["GET"])
 def get_user_by_username(username):
     """
     GET: Search feed for a specific user by username
@@ -379,6 +379,9 @@ def get_user_by_username(username):
 
 @app.route("/api/users/<int:user_id>/bio/", methods = ["POST"])
 def edit_user_bio(user_id):
+  """
+  Edit bio for specific user
+  """
   body = request.get_json()
   text = body.get("text")
   if text is None: text = "No bio provided"
@@ -408,7 +411,7 @@ def delete_user_personality(user_id):
     return success_response(user.simple_serialize())
 
 #TODO: check "Post" in db.py
-@app.route("/api/users/<int:user_id>/", methods=["POST"])
+@app.route("/api/users/<int:user_id>/posts/", methods=["POST"])
 def create_post(user_id):
     """
     POST: Create post with text for the associated user
@@ -559,7 +562,7 @@ def get_user_selection(question_id):
   selected_option = next((option for option in options if option.score==score))
   return selected_option"""
 
-@app.route("/api/results/<int:user_id>/")
+@app.route("/api/surveys/<int:user_id>/results/")
 def update_user_personality_type(user_id):
   """
   Update user with new personality type
