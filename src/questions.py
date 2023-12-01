@@ -1,4 +1,3 @@
-# Hardcoded question data with specified criteria
 # Hardcoded question data with specified criteria including scores
 question_data = [
   {"question_no": 1, "question_text": "At a party do you:", "options": ["A. Interact with many, including strangers", "B. Interact with a few, known to you"], "score": ["E", "I"]},

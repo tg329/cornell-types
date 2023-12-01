@@ -1,9 +1,12 @@
-#11/26/2023 DEBUG NOTE: need to import stuff
+
 from questions import question_data
 from db import db
 from db import Question, QuestionOption, UserAnswer, Personality
-# Create questions and options at beginning of app
+
 def create_survey_questions():
+  """
+  Creates survey questions and options
+  """
   for q_data in question_data:
       question = Question(question_no=q_data["question_no"], question_text=q_data["question_text"])
       db.session.add(question)
@@ -15,9 +18,11 @@ def create_survey_questions():
       question.options.extend(options)
   db.session.commit()
 
-#create 16 personality types and commit to db
+
 def create_personalities():
-        # create a dictionary for key personality type and value description in python format
+    """
+    Creates personalities with descriptions and adds them to the database
+    """
     mbti_types = [
     "ISTJ", "ISFJ", "INFJ", "INTJ",
     "ISTP", "ISFP", "INFP", "INTP",
@@ -54,11 +59,7 @@ def find_personality(user_id):
   """
   Finds personality type from responses
   """
-
-  #get user_answers from user_id
   answers = UserAnswer.query.filter_by(user_id = user_id).all()
-
-  #check if length of user_answers is 36
   if len(answers) != 36:
     print("ran into error")
     return None
@@ -108,6 +109,5 @@ def find_personality(user_id):
     personality_type += "J"
   else:
     personality_type += "P"
-  print(personality_type)
   personality = Personality.query.filter_by(personality_type = personality_type).first()
   return personality.id

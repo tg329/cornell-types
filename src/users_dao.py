@@ -1,10 +1,8 @@
-# Hannah's Note: from authentication demo
 """
 DAO (Data Access Object) file
 
 Helper file containing functions for accessing data in our database
 """
-#TODO: fill out from demo code
 from db import db
 from db import User
 
@@ -42,9 +40,8 @@ def verify_credentials(email, username, password):
         optional_user = get_user_by_email(email)
     elif username is not None:
         optional_user = get_user_by_username(username)
-    if optional_user is None: #User does not exist
+    if optional_user is None: 
         return False, None
-    #NOTE: from authentication demo; doesn't work until db is set up
     return optional_user.verify_password(password), optional_user
 
 def create_user(email, username, password, school, verification_code):
@@ -55,9 +52,8 @@ def create_user(email, username, password, school, verification_code):
     """
     optional_user = get_user_by_email(email)
 
-    if optional_user is not None: #User already exists. Cannot sign up!
+    if optional_user is not None: 
         return False, optional_user
-    #TODO: edit this when db is set up
     user = User(email=email, username = username,  password=password, school = school, verification_code = verification_code)
     
     db.session.add(user)
@@ -75,7 +71,6 @@ def renew_session(update_token):
     user = get_user_by_update_token(update_token)
     if user is None:
         return None
-    #NOTE: from authentication demo; doesn't work until db is set up
     user.renew_session()
     db.session.commit()
     return user

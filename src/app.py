@@ -1,66 +1,3 @@
-#TODO: (AFTER TESTING) add descriptions for each personliaty type instead of image
-#TODO: fix libraries for images 
-#TODO: restore proper liberaries for flask login and flask mail (why didn't it save lol)
-"""
-TESTING
-
-if there is body request, then make sure throws the correct error message if information is missing
-
-USER Authentication:
-1. add email_verification code 
-2. user (register, login, logout, update_session) 
-- check if user logouts, information still remains in database
-
-Survey:
-1. FUNC create_survey_questions
-2. GET: Specific Question with Questions Options
-3. POST: Submit specific user's response to a specific question
-4. GET: After all answers submitted, get user's new personality type and update the user in the database.
- - test out different combinations of options 
-
-Feed with Posts:
-1. GET: Feed of ALL posts --> related to users and all of the 16 personalities.
-2. POST: Create post with text for the associated user
-3. GET: Return personality type by personality_id
-4. GET: Search feed for a specific user by username to return their profile consisiting of bio, username and personality.
-5. GET: Search feed for a specific user by post_id to return their profile consisiting of bio, username and personality.
-6. GET: Statistics for cornell community - generate pie charts/graphs to shows statistics (percentage) based on school.
-"""
-
-
-"""
-Requests:
-Posts:
-    GET: Feed of ALL posts --> related to users and all of the 16 personalities.
-    POST: Create post with text for the associated user
-    GET: Return personality type by personality_id 
-
-Users:
-    GET: Get Personality Type 
-    DELETE: Delete user's personality type (Afterwards, frontend should redirect to POST: Survey to get personality type)
-    POST: Edit bio for specific user 
-
-    Authentication: 
-        POST: Register New User
-        POST: Login New User
-        POST: Logout User
-        POST: Update Session for User
-    Feed:
-        GET: Search feed for a specific user by username to return their profile consisiting of bio, username and personality.
-        GET: Search feed for a specific user by post_id to return their profile consisiting of bio, username and personality.
-        GET: Statistics for cornell community - generate pie charts/graphs to shows statistics (percentage) based on school.
-Survey:
-    FUNC create_survey_questions: creates all questions w/ options models at beginning of app
-    GET: Specific Question with Questions Options 
-    POST: Submit specific user's response to a specific question
-    PATCH: After all answers submitted, get user's new personality type and update the user in the database. 
-"""
-
-#TODO: Research External APi
-    #Can't find external API, but did find questionnaires
-#TODO: Research Image Lecture
-#TODO: Test users routes with postman
-
 import json
 from db import db
 from flask import Flask, request, redirect, url_for, flash, g
@@ -72,22 +9,18 @@ import users_dao
 import random
 import string
 from functools import wraps
-from flask import Flask, request
 from db import User, Personality, Post, Question, QuestionOption, UserAnswer, Asset
-import os
-import datetime
-import users_dao
 from questions import question_data
-#import helper_funcs as helper
+
 app = Flask(__name__)
 db_filename = "users.db"
 
 secret_key = os.environ.get('SECRET_KEY')
-app.secret_key = secret_key #TODO: place in .env file another time
+app.secret_key = secret_key
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///%s" % db_filename
-
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["SQLALCHEMY_ECHO"] = True
+
 # Configure Flask-Mail
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
@@ -121,7 +54,6 @@ def create_app():
     # Check if the initialization status file exists
     if not os.path.exists(INITIALIZATION_FILE):
         with app.app_context():
-            # Initialize the database and run your functions
             db.create_all()
             helper.create_survey_questions()
             helper.create_personalities()
@@ -130,13 +62,14 @@ def create_app():
                 file.write("initialized")
     return app
 
-# generalized response formats
+#generalized response formats
 def success_response(data, code=200):
     return json.dumps(data), code
 
 def failure_response(message, code=404):
     return json.dumps({"error": message}), code
 
+#authentication functions
 def send_verification_email(email, verification_code):
     """
     Helper function that sends a verification code to the user's email
@@ -157,17 +90,15 @@ def extract_token(request):
         return False, failure_response("Invalid authorization header.")
     return True, bearer_token
 
-#ROUTES
-
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
 
+#ROUTES
 @app.route("/")
 def greeting():
     """
     Starting Point (Home Page)
-
     """
     return success_response("Hello! Welcome to the Cornell Personality Type App!")
 
@@ -201,21 +132,34 @@ def get_personalities():
 @app.route("/api/users/personalities/delete/", methods=["DELETE"])
 def delete_personality():
     """
-    DELETE: from the database, delete all the personalities models
+    DELETE: From the database, delete all the personalities models
     """
     for personality in Personality.query.all():
         db.session.delete(personality)
     db.session.commit()
     return success_response("Successfully deleted all personalities")
 
+@app.route("/api/posts/<int:post_id>/", methods=["DELETE"])
+def get_post(post_id):
+    """
+    GET: Search feed delete post by post_id
+    """
+    post = Post.query.filter_by(id=post_id).first()
+    if post is None:
+        return failure_response("Post not found!")
+    db.session.delete(post)
+    db.session.commit()
+    return success_response("deleted")
+
 #---AUTHENTICATION---
 @app.route("/api/users/register/", methods=["POST"])
 def register_account():
     """
-    Endipoing for creating a new user
+    POST: Endipoing for creating a new user
         Requires email
         Requires password 
-    Redirect to POST: Survey to get personality type
+        Requires username 
+        Requires school
     """
     body = json.loads(request.data)
     email = body.get("email")
@@ -223,12 +167,13 @@ def register_account():
     password = body.get("password")
     school = body.get("school")
 
-    if email is None or password is None:
+    if email is None or password is None or username is None or school is None:
         return failure_response("Email, password, username, or school not provided")
     if "@cornell.edu" not in email:
         return failure_response("Email not a valid Cornell email")
     if school not in cornell_schools:
         return failure_response("School not a valid Cornell school")
+    
     # Generate a random verification code
     verification_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
     created, user = users_dao.create_user(email, username, password, school, verification_code = verification_code) #TODO: same format as user_dao.py
@@ -236,11 +181,9 @@ def register_account():
     if not created:
         return failure_response("User already exists")
     
-        #send the  verification email
     send_verification_email(email, verification_code)
     flash('Check your email for the verification code', 'success')
 
-    #NOTE: from authentication demo; doesn't work until db is set up 
     return success_response({
         "message": "Check your email for the verification code",
         "session_token": user.session_token,
@@ -251,8 +194,9 @@ def register_account():
 @app.route("/api/users/login/", methods=["POST"])
 def login():
     """
-    Endpoint for logging in
-        Requires email
+    POST: Endpoint for logging in
+        Requires user verification 
+        Requires email/username
         Requires password
     """
     body = json.loads(request.data)
@@ -263,16 +207,12 @@ def login():
     if (email is None and username is None) or password is None:
         return failure_response("Email or username not provided, or password not provided")
     success, user = users_dao.verify_credentials(email, username, password) #TODO: update users_dao.py 
-
     if not success:
-        return failure_response("Incorrect email/username or password")
-    
+        return failure_response("Incorrect email/username or password") 
     if user.is_verified != True:
         return failure_response("User not verified. Please verify your account.", 403)
-    
     flask_login.login_user(user)
     flash('You have been logged in!', 'success')
-    #NOTE: from authentication demo; doesn't work until db is set up
     return success_response({
         "session_token": user.session_token,
         "session_expiration": str(user.session_expiration),
@@ -300,13 +240,11 @@ def logout():
 @app.route('/api/users/verify/<string:verification_code>/')
 def verify(verification_code):
     user = User.query.filter_by(verification_code=verification_code).first()
-
     if user:
         user.is_verified = True
         db.session.commit()
     else:
         return failure_response("Invalid verification code")
-
     return success_response("Email verification successful. You can now log in.")
 
 @app.route("/api/users/session/", methods=["POST"])
@@ -315,21 +253,18 @@ def update_session():
     Endpoint for updating session
     """
     success, update_token = extract_token(request)
-
     if not success:
         return update_token
     user = users_dao.renew_session(update_token)
-    #change this - should be renew_session method in users_dao.py
     if user is None:
         return failure_response("Invalid update token")
-
-    #NOTE: from authentication demo; doesn't work until db is set up
     return success_response({
         "session_token": user.session_token,
         "session_expiration": str(user.session_expiration),
         "update_token": user.update_token
     })
 
+### --- Other Routes --- 
 @app.route("/api/posts/")
 def get_posts():
     """
@@ -337,11 +272,10 @@ def get_posts():
     """
     return success_response([p.serialize() for p in Post.query.all()])
 
-# also need get all personalities for mini-circles on top of feed
 @app.route("/api/personalities/<int:personality_id>/", methods=["GET"])
 def get_personality_type(personality_id):
   """
-  GET: personality
+  GET: Personality by personality_id
   """
   personality = Personality.query.filter_by(id = personality_id).first()
   if personality is None:
@@ -367,8 +301,7 @@ def get_user(post_id):
 @app.route("/api/users/<string:username>/", methods=["GET"])
 def get_user_by_username(username):
     """
-    GET: Search feed for a specific user by username
-    #NOTE: case sensitive
+    GET: Search feed for a specific user by username (case sensitive)
     """
     user = User.query.filter_by(username=username).first()
     if user is None:
@@ -389,28 +322,28 @@ def edit_user_bio(user_id):
   user = User.query.filter_by(id=user_id).first()
   if user is None:
     return failure_response("No user found")
-
+  if user.is_verified != True:
+    return failure_response("User not verified. Please verify your account.", 403)
   user.bio = text
   db.session.commit()
   return success_response(user.simple_serialize())
 
-#TODO: check "personality_type" in db.py 
 @app.route("/api/users/<int:user_id>/", methods=["DELETE"])
 def delete_user_personality(user_id):
     """
     DELETE can delete personality type from user info 
-    After this request, frontend should redirect to POST: Survey to get personality type
     """
     user = User.query.filter_by(id=user_id).first()
     if user is None:
         return failure_response("User not found!")
+    if user.is_verified != True:
+        return failure_response("User not verified. Please verify your account.", 403)
     personality = Personality.query.filter_by(id=user.personality_id).first()
-    personality.num_of_each -=1 #NEW, decrement num_of_each in personality instance
+    personality.num_of_each -=1
     user.personality_id = None
     db.session.commit()
     return success_response(user.simple_serialize())
 
-#TODO: check "Post" in db.py
 @app.route("/api/users/<int:user_id>/posts/", methods=["POST"])
 def create_post(user_id):
     """
@@ -418,65 +351,31 @@ def create_post(user_id):
     """
     body = json.loads(request.data)
     text = body.get("text")
-    #image_data = body.get("image_data")
-    #if image_data is None:
-       #return failure_response("No url for image provided")
     if text is None:
         return failure_response("Text not provided")
-
     user = User.query.filter_by(id=user_id).first()
     if user is None:
         return failure_response("User not found!")
-
-    #asset = Asset(image_data = image_data)
-    #db.session.add(asset)
-    #db.session.commit()
-    post = Post(text=text, userid=user_id) #TODO: add image stuff later
+    if user.is_verified != True:
+        return failure_response("User not verified. Please verify your account.", 403)
+    post = Post(text=text, userid=user_id)
     db.session.add(post)
     db.session.commit()
     return success_response(post.serialize())
 
-#-- Debug---
-@app.route("/api/posts/<int:post_id>/", methods=["DELETE"])
-def get_post(post_id):
-    """
-    GET: Search feed delete post by post_id
-    """
-    post = Post.query.filter_by(id=post_id).first()
-    if post is None:
-        return failure_response("Post not found!")
-    db.session.delete(post)
-    db.session.commit()
-    return success_response("deleted")
-
-#MAJORITY personality type for a school 
 @app.route("/api/users/statistics/", methods=["GET"])
 def get_statistics():
     """
     GET: Statistics for cornell community
     """
-    # by personality type, what % are from this school?
-    # ENTP - % school of engineering, school of
-    #key: ENTP
-    # value: school of engineer: % 
     dict = {}
 
-    #TODO: append dictionary
-
-    """personality_id = Personality.query.filter_by(personality_type = "ESFP" ).first().id
-    num_users = len(User.query.filter_by(personality_id=personality_id).all())
-    lst = []
-    lst.append({"College of Engineering": num_users})
-    dict["ESFP"] = lst
-    """
-    
-    
     for personality in Personality.query.all():
       max = 0.0
       max_school = ""
       lst = [] #lst of dictionaries. dictionary key is school, value is % 
       for school in cornell_schools:
-        num_users = len(User.query.filter_by(personality_id=personality.id, school = school).all())
+        num_users = len(User.query.filter_by(personality_id=personality.id, school = school, is_verified = True).all())
         if personality.number_of_each == 0: percentage = 0.0
         else: percentage = num_users / personality.number_of_each
         if percentage > max: 
@@ -487,14 +386,8 @@ def get_statistics():
       dict[personality.personality_type] = lst
     return success_response(dict)   
 
-            
+# --- Survey Routes
 
-    
-     
-
-#Survey Routes
-
-# TODO: consider user id in url
 @app.route("/api/surveys/<int:question_id>/", methods=["GET"])
 def get_question_options(question_id):
     """
@@ -508,11 +401,6 @@ def get_question_options(question_id):
       return failure_response("No options found")
     return success_response(question.serialize())
 
-#code that will help you create routes
-# Assume you have loaded questions and options from your JSON file
-# question_data in questions.py file
-# User answers questions
-#route needs user_id and question_id
 @app.route("/api/surveys/<int:user_id>/<int:question_id>/", methods = ["POST"])
 def submit_answer(user_id, question_id):
   """
@@ -530,14 +418,12 @@ def submit_answer(user_id, question_id):
     return failure_response("No user found")
   if not user.is_verified:
     return failure_response("User not verified. Please verify your account.", 403)
-  
-  #selected_option = get_user_selection(question.id)
+
   body = json.loads(request.data)
   score = body.get("score")
   # find the option that correleates with the correct option.id and score
   selected_option = next((option for option in options if option.score==score), None)
-  # (DONT NEED FOR NOW)Find the selected option in the options list
-  # selected_option = next((option for option in options if option.option_text == selected_option_text), None)
+ 
   if selected_option is None:
     return failure_response("No option based on user's response is found")
     
@@ -545,22 +431,9 @@ def submit_answer(user_id, question_id):
   if previous_answer is not None:
     db.session.delete(previous_answer)
   user_answer = UserAnswer(user_id=user_id, question_id=question.id, option_id=selected_option.id)
-  #question.answers.append(user_answer)
   db.session.add(user_answer)
   db.session.commit()
   return success_response(user_answer.serialize())
-
-"""#an example of how the get_user_selection method can be defined 
-def get_user_selection(question_id):
-  # question = Question.query.get(question_id)
-  # if not question:
-  #     print(f"Question with ID {question_id} not found.")
-  #     return None
-  options = QuestionOption.query.filter_by(question_id=question_id).all()
-  body = json.loads(request.data)
-  score = body.get("score")
-  selected_option = next((option for option in options if option.score==score))
-  return selected_option"""
 
 @app.route("/api/surveys/<int:user_id>/results/")
 def update_user_personality_type(user_id):

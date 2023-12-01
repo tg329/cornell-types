@@ -127,6 +127,7 @@ class User(db.Model):
           "username": self.username,
           "personality":Personality.query.filter_by(id=self.personality_id).first().personality_type,
           "bio": self.bio,
+          "school": self.school
       }
   def optional_serialize(self):
     return {
