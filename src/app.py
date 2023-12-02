@@ -190,7 +190,6 @@ def register_account():
 
         # Generate a random verification code
         verification_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
-        
         created, user = users_dao.create_user(email, username, password, school, verification_code=verification_code)
 
         if not created:
@@ -212,7 +211,6 @@ def register_account():
 
         # Return a generic failure response to the client
         return failure_response("An unexpected error occurred. Please try again.")
-
 
 @app.route("/api/users/login/", methods=["POST"])
 def login():
