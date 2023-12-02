@@ -96,6 +96,15 @@ def extract_token(request):
 def load_user(user_id):
     return User.query.get(int(user_id))
 
+# This can be used to log all incoming requests
+@app.before_request
+def log_request_info():
+    app.logger.info('Headers: %s', request.headers)
+    app.logger.info('Body: %s', request.get_data(as_text=True))
+    #print all request and errors 
+    print(request.headers)
+    print(request.get_data(as_text=True))
+
 #ROUTES
 @app.route("/")
 def greeting():
@@ -156,42 +165,54 @@ def get_post(post_id):
 #---AUTHENTICATION---
 @app.route("/api/users/register/", methods=["POST"])
 def register_account():
-    """
-    POST: Endipoing for creating a new user
-        Requires email
-        Requires password 
-        Requires username 
-        Requires school
-    """
-    body = json.loads(request.data)
-    email = body.get("email")
-    username = body.get("username")
-    password = body.get("password")
-    school = body.get("school")
+    try:
+        """
+        POST: Endpoint for creating a new user
+            Requires email
+            Requires password 
+            Requires username 
+            Requires school
+        """
+        body = json.loads(request.data)
+        email = body.get("email")
+        username = body.get("username")
+        password = body.get("password")
+        school = body.get("school")
 
-    if email is None or password is None or username is None or school is None:
-        return failure_response("Email, password, username, or school not provided")
-    if "@cornell.edu" not in email:
-        return failure_response("Email not a valid Cornell email")
-    if school not in cornell_schools:
-        return failure_response("School not a valid Cornell school")
-    
-    # Generate a random verification code
-    verification_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
-    created, user = users_dao.create_user(email, username, password, school, verification_code = verification_code) #TODO: same format as user_dao.py
+        if email is None or password is None or username is None or school is None:
+            return failure_response("Email, password, username, or school not provided")
 
-    if not created:
-        return failure_response("User already exists")
-    
-    send_verification_email(email, verification_code)
-    flash('Check your email for the verification code', 'success')
+        if "@cornell.edu" not in email:
+            return failure_response("Email not a valid Cornell email")
 
-    return success_response({
-        "message": "Check your email for the verification code",
-        "session_token": user.session_token,
-        "session_expiration": str(user.session_expiration),
-        "update_token": user.update_token
-    })
+        if school not in cornell_schools:
+            return failure_response("School not a valid Cornell school")
+
+        # Generate a random verification code
+        verification_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+        
+        created, user = users_dao.create_user(email, username, password, school, verification_code=verification_code)
+
+        if not created:
+            return failure_response("User already exists")
+
+        send_verification_email(email, verification_code)
+        flash('Check your email for the verification code', 'success')
+
+        return success_response({
+            "message": "Check your email for the verification code",
+            "session_token": user.session_token,
+            "session_expiration": str(user.session_expiration),
+            "update_token": user.update_token
+        })
+
+    except Exception as e:
+        # Print the error to the console
+        print(f"Error in register_account: {str(e)}")
+
+        # Return a generic failure response to the client
+        return failure_response("An unexpected error occurred. Please try again.")
+
 
 @app.route("/api/users/login/", methods=["POST"])
 def login():
@@ -458,4 +479,4 @@ def update_user_personality_type(user_id):
 
 if __name__ == "__main__":
     import helper_funcs as helper
-    create_app().run(host="0.0.0.0", port=8000, debug=False)
+    create_app().run(host="0.0.0.0", port=8000, debug=True)

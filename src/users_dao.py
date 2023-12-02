@@ -53,6 +53,7 @@ def create_user(email, username, password, school, verification_code):
     optional_user = get_user_by_email(email)
 
     if optional_user is not None: 
+        if not optional_user.is_verified: return True, user #resend verification code 
         return False, optional_user
     user = User(email=email, username = username,  password=password, school = school, verification_code = verification_code)
     
