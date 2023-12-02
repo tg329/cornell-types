@@ -19,3 +19,4 @@ flask-login==0.6.3
 flask-mail==0.9.1
 boto3==1.18.63
 pillow==10.1.0
+flask-cors==3.0.10

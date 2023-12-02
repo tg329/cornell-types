@@ -11,8 +11,10 @@ import string
 from functools import wraps
 from db import User, Personality, Post, Question, QuestionOption, UserAnswer, Asset
 from questions import question_data
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 db_filename = "users.db"
 
 secret_key = os.environ.get('SECRET_KEY')
