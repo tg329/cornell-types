@@ -303,6 +303,29 @@ def get_personality_type(personality_id):
     return failure_response("Personality not found")
   return success_response(personality.serialize()) 
 
+@app.route("/api/users/<string:username>/personality/", methods = ["POST"])
+def enter_personality_type(username):
+    """
+    POST: Enter personality type for specific user
+    """
+    body = request.get_json()
+    personality_type = body.get("personality_type")
+    if personality_type is None:
+        return failure_response("Personality type not provided")
+    personality = Personality.query.filter_by(personality_type = personality_type).first()
+    if personality is None:
+        return failure_response("Personality not found")
+    user = User.query.filter_by(username = username).first()
+    if user is None:
+        return failure_response("User not found")
+    if user.is_verified != True:
+        return failure_response("User not verified. Please verify your account.", 403)
+    user.personality_id = personality.id
+    personality.number_of_each +=1
+    personality.num_of_each +=1
+    db.session.commit()
+    return success_response(user.simple_serialize())
+
 @app.route("/api/posts/<int:post_id>/")
 def get_user(post_id):
     """
@@ -331,8 +354,8 @@ def get_user_by_username(username):
         return failure_response("The user found is not verified.")
     return success_response(user.simple_serialize())
 
-@app.route("/api/users/<int:user_id>/bio/", methods = ["POST"])
-def edit_user_bio(user_id):
+@app.route("/api/users/<string:username>/bio/", methods = ["POST"])
+def edit_user_bio(username):
   """
   Edit bio for specific user
   """
@@ -340,7 +363,7 @@ def edit_user_bio(user_id):
   text = body.get("text")
   if text is None: text = "No bio provided"
   
-  user = User.query.filter_by(id=user_id).first()
+  user = User.query.filter_by(username=username).first()
   if user is None:
     return failure_response("No user found")
   if user.is_verified != True:
@@ -349,12 +372,12 @@ def edit_user_bio(user_id):
   db.session.commit()
   return success_response(user.simple_serialize())
 
-@app.route("/api/users/<int:user_id>/", methods=["DELETE"])
-def delete_user_personality(user_id):
+@app.route("/api/users/<string:username>/", methods=["DELETE"])
+def delete_user_personality(username):
     """
     DELETE can delete personality type from user info 
     """
-    user = User.query.filter_by(id=user_id).first()
+    user = User.query.filter_by(username = username).first()
     if user is None:
         return failure_response("User not found!")
     if user.is_verified != True:
@@ -365,8 +388,8 @@ def delete_user_personality(user_id):
     db.session.commit()
     return success_response(user.simple_serialize())
 
-@app.route("/api/users/<int:user_id>/posts/", methods=["POST"])
-def create_post(user_id):
+@app.route("/api/users/<string:username>/posts/", methods=["POST"])
+def create_post(username):
     """
     POST: Create post with text for the associated user
     """
@@ -374,12 +397,12 @@ def create_post(user_id):
     text = body.get("text")
     if text is None:
         return failure_response("Text not provided")
-    user = User.query.filter_by(id=user_id).first()
+    user = User.query.filter_by(username = username).first()
     if user is None:
         return failure_response("User not found!")
     if user.is_verified != True:
         return failure_response("User not verified. Please verify your account.", 403)
-    post = Post(text=text, userid=user_id)
+    post = Post(text=text, userid=user.id)
     db.session.add(post)
     db.session.commit()
     return success_response(post.serialize())
@@ -422,14 +445,14 @@ def get_question_options(question_id):
       return failure_response("No options found")
     return success_response(question.serialize())
 
-@app.route("/api/surveys/<int:user_id>/<int:question_id>/", methods = ["POST"])
-def submit_answer(user_id, question_id):
+@app.route("/api/surveys/<string:username>/<int:question_id>/", methods = ["POST"])
+def submit_answer(username, question_id):
   """
     POST: Submit specific user's response to a specific question
   """
   question = Question.query.filter_by(id = question_id).first()
   options = QuestionOption.query.filter_by(question_id = question.id).all()
-  user = User.query.filter_by(id = user_id).first()
+  user = User.query.filter_by(username = username).first()
 
   if question is None:
     return failure_response("No question found")
@@ -448,25 +471,25 @@ def submit_answer(user_id, question_id):
   if selected_option is None:
     return failure_response("No option based on user's response is found")
     
-  previous_answer = UserAnswer.query.filter_by(user_id=user_id, question_id=question.id).first()
+  previous_answer = UserAnswer.query.filter_by(user_id=user.id, question_id=question.id).first()
   if previous_answer is not None:
     db.session.delete(previous_answer)
-  user_answer = UserAnswer(user_id=user_id, question_id=question.id, option_id=selected_option.id)
+  user_answer = UserAnswer(user_id=user.id, question_id=question.id, option_id=selected_option.id)
   db.session.add(user_answer)
   db.session.commit()
   return success_response(user_answer.serialize())
 
-@app.route("/api/surveys/<int:user_id>/results/")
-def update_user_personality_type(user_id):
+@app.route("/api/surveys/<string:username>/results/")
+def update_user_personality_type(username):
   """
   Update user with new personality type
   """
-  user = User.query.filter_by(id = user_id).first()
+  user = User.query.filter_by(username = username).first()
   if user is None:
     return failure_response("No user found")
   if not user.is_verified:
     return failure_response("User not verified. Please verify your account.", 403)
-  personality_id = helper.find_personality(user_id)
+  personality_id = helper.find_personality(user.id)
   if personality_id is None:
     return failure_response("Failed to get personality type for the user")
   personality = Personality.query.filter_by(id = personality_id).first()

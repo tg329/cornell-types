@@ -132,6 +132,27 @@ Response:
 - An example of `personality_type` is "ENTP"
 - `number_of_each` represents the number of users of that personality 
 
+### Enter MBTI Type ###
+`POST /api/users/<string:username>/personality/`
+
+Request Body:
+```json
+{
+    "personality_type": <personality_type>
+}
+```
+
+Response:
+```json
+{
+    "id": <id>,
+    "username": <username>,
+    "personality": <personality_type>,
+    "bio": <bio>,
+    "school": <school>
+}
+```
+
 ### Get User by post_id ###
 `GET /api/posts/<int:post_id>/`
 
@@ -141,7 +162,8 @@ Response:
     "id": <id>,
     "username": <username>,
     "personality": <personality_type>,
-    "bio": <bio>
+    "bio": <bio>,
+    "school": <school>
 }
 ```
 *Note:*
@@ -155,28 +177,30 @@ Response:
     "id": <id>,
     "username": <username>,
     "personality": <personality_type>,
-    "bio": <bio>
+    "bio": <bio>,
+    "school": <school>
 }
 ```
 *Note:*
 - Case Senstitive
 
 ### Delete User's Personality ###
-`DELETE /api/users/<int:user_id>/`
+`DELETE /api/users/<string:username>/`
 Response:
 ```json
 {
     "id": <id>,
     "username": <username>,
     "personality": <personality_type>,
-    "bio": <bio>
+    "bio": <bio>,
+    "school": <school>
 }
 ```
 *Note:*
 - Frontend should call request to conduct new survey
 
 ### Edit user bio 
-`POST /api/users/<int:user_id>/bio/`
+`POST /api/users/<string:username>/bio/`
 Request Body:
 ```json
 {
@@ -190,12 +214,13 @@ Response:
     "id": <id>,
     "username": <username>,
     "personality": <personality_type>,
-    "bio": <bio>    
+    "bio": <bio>,
+    "school": <school>
 }
 ```
 
 ### Create new Post
-`POST /api/users/<int:user_id>/posts/`
+`POST /api/users/<string:username>/posts/`
 
 Request Body:
 ```json
@@ -256,7 +281,7 @@ Response:
 - `answers` is more for debugging purposes 
 
 ### POST Submit specific response 
-`POST /api/surveys/<int:user_id>/<int:question_id>/`
+`POST /api/surveys/<string:username>/<int:question_id>/`
 
 Request Body:
 ```json
@@ -276,7 +301,7 @@ Response:
 ```
 
 ### UPDATE USER BY SURVEY PERSONALITY TYPE ###
-`UPDATE /api/surveys/<int:user_id>/results/`
+`UPDATE /api/surveys/<string:username>/results/`
 
 Reponse:
 ```json
@@ -284,6 +309,7 @@ Reponse:
   "id": <id>,       
   "username": <username>,
   "personality": <UPDATED personality type>,
-  "bio": <bio>
+  "bio": <bio>,
+  "school": <school>
 }
 ```
