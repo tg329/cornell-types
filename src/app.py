@@ -41,14 +41,13 @@ login_manager.login_view = "login"
 
 #global variable 
 cornell_schools = [
-    "College of Agriculture and Life Sciences",
-    "College of Architecture, Art, and Planning",
-    "College of Arts and Sciences",
-    "Cornell SC Johnson College of Business",
-    "College of Engineering",
-    "College of Human Ecology",
-    "School of Hotel Administration",
-    "Cornell Law School"
+    "cals",
+    "aap",
+    "a&s",
+    "engineering",
+    "ilr",
+    "hotel/dyson",
+    "hum ec"
 ]
 
 db.init_app(app)
