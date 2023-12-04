@@ -300,8 +300,8 @@ Response:
 }
 ```
 
-### UPDATE USER BY SURVEY PERSONALITY TYPE ###
-`UPDATE /api/surveys/<string:username>/results/`
+### Update USER BY SURVEY PERSONALITY TYPE ###
+`GET /api/surveys/<string:username>/results/`
 
 Reponse:
 ```json

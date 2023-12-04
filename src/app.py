@@ -321,7 +321,6 @@ def enter_personality_type(username):
         return failure_response("User not verified. Please verify your account.", 403)
     user.personality_id = personality.id
     personality.number_of_each +=1
-    personality.num_of_each +=1
     db.session.commit()
     return success_response(user.simple_serialize())
 

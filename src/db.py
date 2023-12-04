@@ -105,12 +105,16 @@ class User(db.Model):
       """
       Serializes a User object into a dictionary.
       """
+      personality = Personality.query.filter_by(id=self.personality_id).first()
+      if personality is None:
+         personality = "No personality type yet"
+      else:
+         personality = personality.personality_type
       return {
           "id": self.id,
-          
           "username": self.username,
           "school": self.school,
-          "personality": Personality.query.filter_by(id=self.personality_id).first().personality_type,
+          "personality": personality,
           "bio": self.bio,
           "email": self.email,
           "password": self.password,
@@ -122,10 +126,15 @@ class User(db.Model):
       """
       Serializes User object into a dictionary with only id, username, personality, bio.
       """
+      personality = Personality.query.filter_by(id=self.personality_id).first()
+      if personality is None:
+         personality = "No personality type yet"
+      else:
+         personality = personality.personality_type
       return {
           "id": self.id,       
           "username": self.username,
-          "personality":Personality.query.filter_by(id=self.personality_id).first().personality_type,
+          "personality": personality,
           "bio": self.bio,
           "school": self.school
       }
